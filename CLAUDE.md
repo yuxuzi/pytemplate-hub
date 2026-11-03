@@ -13,15 +13,26 @@ A static, verified index of pytemplate-uv template packs. A typed Python 3.11+ p
 - Lint: `uv run ruff check .`
 - Format: `uv run ruff format .` (check only: `uv run ruff format --check .`)
 - Type-check: `uv run mypy pytemplate_hub`
-- Run the CLI: `uv run pytemplate_hub --help`
+- Run the CLI: `uv run pytemplate_hub --help` (`--run-lifecycle` executes pack code; use only the sample pack locally)
 - One-off tools without installing them: `uvx <tool>` (for example `uvx pre-commit run --all-files`)
 
 ## Layout
 
-- `pytemplate_hub/core.py` — business logic; no CLI or I/O concerns.
-- `pytemplate_hub/cli.py` — Typer entry point; a thin layer that calls `core`.
+- `pytemplate_hub/schema.py` — the index entry format.
+- `pytemplate_hub/fetch.py` — fetching a tag; the commit and digest. Uses git only.
+- `pytemplate_hub/verify.py` — listing checks, re-verification, and protected-field checks.
+- `pytemplate_hub/cli.py` — Typer entry point; a thin layer over `verify`.
+- `examples/sample-pack/` — a trusted pack used by the tests.
+- `index/` — the entries, one per pack.
 - `tests/` — pytest suite, one test module per source module.
-- `pyproject.toml` — dependencies, the `dev` dependency group, and all tool configuration.
+
+## Rules specific to this project
+
+- Import pytemplate-uv only through `pytemplate.api`.
+- The hub stores references, never template files, and has no accounts or server.
+- Never add self-declared quality fields. Quality signals are computed, or name a reviewer.
+- `.github/workflows/verify-index.yml` runs untrusted code: never give it secrets or write access.
+- Neither pytemplate-uv nor quant-agent-os may depend on the hub or contact it by default.
 
 ## Conventions
 
