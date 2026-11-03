@@ -1,0 +1,13 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: v3.0.0
+_src_path: gh:yuxuzi/pytemplate-uv
+author: Leo Liu
+components:
+- cli
+description: A static, verified index of pytemplate-uv template packs
+email: yuxuzi@gmail.com
+license: MIT
+package_name: pytemplate_hub
+profile: python
+project_name: pytemplate-hub
+python_version: '3.11'

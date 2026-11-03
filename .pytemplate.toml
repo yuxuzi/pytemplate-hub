@@ -1,0 +1,102 @@
+schema = 2
+
+[generator]
+name = "pytemplate-uv"
+version = "3.0.0"
+
+[template]
+kind = "bundled"
+source = "gh:yuxuzi/pytemplate-uv"
+ref = "v3.0.0"
+
+[profile]
+id = "python"
+version = "3"
+supported_python = ["3.11", "3.12", "3.13", "3.14", "3.15"]
+
+[[components]]
+id = "cli"
+version = "1"
+status = "stable"
+reason = "default"
+
+[answers]
+author = "Leo Liu"
+components = ["cli"]
+description = "A static, verified index of pytemplate-uv template packs"
+email = "yuxuzi@gmail.com"
+license = "MIT"
+package_name = "pytemplate_hub"
+profile = "python"
+project_name = "pytemplate-hub"
+python_version = "3.11"
+
+[[files]]
+path = ".copier-answers.yml"
+sha256 = "5a04479a92c82a9b5837d69fd6b3332d0bf5f643fa9fcd7ef63ed8f64fd9bd8a"
+owner = "profile"
+
+[[files]]
+path = ".github/workflows/ci.yml"
+sha256 = "bdb85b3c846fb47a9b8bdc5e68d7306e8f0a08064fa96215f043e72f479f802e"
+owner = "profile"
+
+[[files]]
+path = ".gitignore"
+sha256 = "b483eedf0dc08a2d05eabc018b8f724ef7546e245e8f3207beb2c625c5976341"
+owner = "profile"
+
+[[files]]
+path = ".pre-commit-config.yaml"
+sha256 = "dd3992638b44f2f8bfc2573a10637d8c8ba69ed424f12da466e222a0bef14889"
+owner = "profile"
+
+[[files]]
+path = "CLAUDE.md"
+sha256 = "9b16516220283d4f5a90d345b804527bfbf8d4a8d1856340498cb4de2e608670"
+owner = "profile"
+
+[[files]]
+path = "README.md"
+sha256 = "4cfb7f7f0139455960bc4ae536a34ab1255912e984b93522df3b761cfe59f3a4"
+owner = "profile"
+
+[[files]]
+path = "pyproject.toml"
+sha256 = "ccbe67be4888e2341346e870e74891424370157db49033f64c3d4d2f8d8b8936"
+owner = "profile"
+
+[[files]]
+path = "pytemplate_hub/__init__.py"
+sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+owner = "profile"
+
+[[files]]
+path = "pytemplate_hub/cli.py"
+sha256 = "5b87d3e97f167892afd589b886d9534db548c3eab984ed4e12795da783e86d20"
+owner = "cli"
+
+[[files]]
+path = "pytemplate_hub/core.py"
+sha256 = "dfff3b5f3ba224b583641dfb0ceec75d0275c6f64955e4c5b798900fafc282f8"
+owner = "profile"
+
+[[files]]
+path = "pytemplate_hub/py.typed"
+sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+owner = "profile"
+
+[[files]]
+path = "tests/__init__.py"
+sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+owner = "profile"
+
+[[files]]
+path = "tests/test_cli.py"
+sha256 = "32cde529ab2dcbab21fa6c8f77259fd7f953e3b401cab5facd285662aed1b87c"
+owner = "cli"
+
+[[files]]
+path = "tests/test_core.py"
+sha256 = "80403dd7101c53db120200fa0785a44a361e79fe6308a777866f1d3581a5dc1e"
+owner = "profile"
