@@ -1,0 +1,16 @@
+profile:
+  type: str
+  choices: [tool]
+project_name:
+  type: str
+package_name:
+  type: str
+  default: "{{ project_name | replace('-', '_') }}"
+description:
+  type: str
+  default: A sample tool
+components:
+  type: str
+  multiselect: true
+  choices: []
+  default: []

@@ -1,0 +1,5 @@
+contract = 1
+id = "sample-pack"
+name = "Sample pack"
+description = "A minimal template pack that exercises every hub check."
+version = "1.0.0"

@@ -16,6 +16,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
+    "pydantic>=2.7",
     "pytemplate-uv>=3.0,<4",
     "rich>=13.7",
     "typer>=0.12",
@@ -42,6 +43,7 @@ module-root = ""
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+extend-exclude = ["examples"]
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "B", "UP", "N", "SIM", "RUF"]
