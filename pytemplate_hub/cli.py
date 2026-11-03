@@ -1,11 +1,91 @@
 """Command-line interface for pytemplate-hub."""
 
+from pathlib import Path
+from typing import Annotated
+
 import typer
+from rich.console import Console
+
+from pytemplate_hub.errors import HubError
+from pytemplate_hub.fetch import GitFetcher
+from pytemplate_hub.verify import add_version, changed_claims, entry_files, verify_entry
 
 app = typer.Typer(
-    help="Command-line interface for pytemplate-hub.",
+    help="Check template packs and maintain the pytemplate-hub index.",
     no_args_is_help=True,
 )
+console = Console()
+errors = Console(stderr=True)
+fetcher = GitFetcher()
+
+IndexOption = Annotated[Path, typer.Option(help="The index directory.")]
+LifecycleOption = Annotated[
+    bool,
+    typer.Option(
+        "--run-lifecycle",
+        help="Also run each profile's lifecycle commands. This EXECUTES THE PACK'S CODE: use it "
+        "only on an isolated machine with no credentials.",
+    ),
+]
+
+
+@app.command()
+def add(
+    repository: Annotated[str, typer.Argument(help="https://github.com/owner/repo")],
+    tag: Annotated[str, typer.Option(help="The git tag to list.")],
+    license_name: Annotated[str, typer.Option("--license", help="SPDX license of the pack.")],
+    index: IndexOption = Path("index"),
+    run_lifecycle: LifecycleOption = False,
+) -> None:
+    """Check a tagged pack and record its commit, digest, and results in the index."""
+    try:
+        path = add_version(
+            index, repository, tag, license_name, fetcher, run_lifecycle=run_lifecycle
+        )
+    except (HubError, ValueError) as error:
+        errors.print(str(error), markup=False)
+        raise typer.Exit(1) from error
+    console.print(f"Recorded {tag} in {path}", markup=False)
+
+
+@app.command("check-claims")
+def check_claims(
+    base: Annotated[Path, typer.Option(help="The index before the change.")],
+    index: IndexOption = Path("index"),
+) -> None:
+    """Fail if a change adds a review claim or alters a listed version's recorded facts."""
+    try:
+        problems = changed_claims(base, index)
+    except HubError as error:
+        errors.print(str(error), markup=False)
+        raise typer.Exit(1) from error
+    for problem in problems:
+        errors.print(problem, markup=False)
+    if problems:
+        raise typer.Exit(1)
+    console.print("No protected fields changed.", markup=False)
+
+
+@app.command()
+def verify(
+    index: IndexOption = Path("index"),
+    run_lifecycle: LifecycleOption = False,
+) -> None:
+    """Re-check every listed version; fail if a tag moved or a pack stopped passing."""
+    if not index.is_dir():
+        errors.print(f"{index} is not a directory.", markup=False)
+        raise typer.Exit(1)
+    files = entry_files(index)
+    problems = [
+        problem
+        for path in files
+        for problem in verify_entry(path, fetcher, run_lifecycle=run_lifecycle)
+    ]
+    for problem in problems:
+        errors.print(problem, markup=False)
+    if problems:
+        raise typer.Exit(1)
+    console.print(f"Verified {len(files)} entries.", markup=False)
 
 
 def main() -> None:
