@@ -1,0 +1,36 @@
+# Checks a proposed index change. This runs untrusted template code, so it must stay isolated:
+# - the `pull_request` trigger gives pull requests from forks no secrets;
+# - the token can only read, and it is not left on disk for later steps.
+# Never add secrets, write permissions, or a `pull_request_target` trigger to this workflow.
+name: Verify index
+
+on:
+  pull_request:
+    paths:
+      - "index/**"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v10.3.2
+      - run: uv sync --locked
+      - name: Refuse review claims and rewritten facts
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/base/index"
+          if git cat-file -e "$BASE_SHA:index" 2>/dev/null; then
+            git archive "$BASE_SHA" index | tar -x -C "$RUNNER_TEMP/base"
+          fi
+          uv run pytemplate_hub check-claims --base "$RUNNER_TEMP/base/index"
+      - name: Check every listed version, running its lifecycle commands
+        run: uv run pytemplate_hub verify --run-lifecycle

@@ -1,0 +1,12 @@
+contract = 1
+id = "tool"
+name = "Sample tool"
+description = "A small package with one tested function."
+version = "1"
+kind = "library"
+status = "experimental"
+questions = ["description"]
+lifecycle_commands = ["uv sync", "uv run pytest"]
+
+[dependency_groups]
+dev = ["pytest>=8.0"]
