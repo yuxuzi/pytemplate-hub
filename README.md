@@ -2,8 +2,8 @@
 
 A static, verified index of [pytemplate-uv](https://github.com/yuxuzi/pytemplate-uv) template packs.
 
-**Status: phase 1, local only.** This is the index format and its checks. There is no site yet, the
-index has no live entries, and the repository is not published. The name is provisional.
+**Status: phase 2.** The index format, its checks, and two listed packs exist. There is no site yet,
+and this repository is private. The name is provisional.
 
 ## How it works
 
@@ -53,6 +53,9 @@ backend, and tests still run code when you use them.** Read a pack before you ru
 
 ## Limits
 
+- Pack mirrors are made by hand so far. Their source is recorded in each mirror's README.
+- `quant-agent-tool` and `quant-baseline` install quant-agent-os from its git default branch, so a
+  passing lifecycle result applies to that branch as it was at check time, not to a fixed version.
 - Consumers do not verify the commit or digest yet. pytemplate-uv fetches by tag, so a moved tag is
   only caught by the hub's own `verify`. Closing this gap is phase 4.
 - `reviewed_by` has no signature behind it. `check-claims` makes a submitter's claim fail CI, and a

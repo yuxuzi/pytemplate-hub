@@ -1,0 +1,11 @@
+format = 1
+repository = "https://github.com/yuxuzi/quant-agent-tool"
+
+[[versions]]
+tag = "v1.0.0"
+commit = "0289fb9aaa6b9da7ec2c8618acadc2767111809e"
+digest = "4b3860bda6d2f8c25884ea9df3160b7647c1550c98050f7d76f1aaf2fa105158"
+pack_version = "1.0.0"
+license = "MIT"
+checked_with = "pytemplate-uv==3.0.0"
+profiles = [{ id = "agent-tool", lifecycle = "passed" }]
