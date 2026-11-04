@@ -1,5 +1,6 @@
 """Tests for fetching a tag and computing its digest."""
 
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -70,6 +71,19 @@ def test_digest_changes_with_contents_and_with_names(tmp_path: Path) -> None:
     third = directory_digest(tmp_path)
 
     assert len({first, second, third}) == 3
+
+
+def test_digest_is_stable_and_ordered_by_path_components(tmp_path: Path) -> None:
+    for name, text in (("agent-b.txt", "b"), ("agent/a.txt", "a"), ("LICENSE", "l")):
+        path = tmp_path / name
+        path.parent.mkdir(exist_ok=True)
+        path.write_bytes(text.encode())
+    framed = b"LICENSE\0l\0" + b"agent/a.txt\0a\0" + b"agent-b.txt\0b\0"
+
+    assert directory_digest(tmp_path) == hashlib.sha256(framed).hexdigest()
+    assert directory_digest(tmp_path) == (
+        "8404d1cecfa0e474b04aef81a1be1d97ec8eaa8ddde47a5238ab5057bec4ccdb"
+    )
 
 
 def test_digest_refuses_symlinks(tmp_path: Path) -> None:
