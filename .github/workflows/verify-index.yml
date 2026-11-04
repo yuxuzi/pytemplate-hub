@@ -27,8 +27,10 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          mkdir -p "$RUNNER_TEMP/base"
-          git archive "$BASE_SHA" index | tar -x -C "$RUNNER_TEMP/base"
+          mkdir -p "$RUNNER_TEMP/base/index"
+          if git cat-file -e "$BASE_SHA:index" 2>/dev/null; then
+            git archive "$BASE_SHA" index | tar -x -C "$RUNNER_TEMP/base"
+          fi
           uv run pytemplate_hub check-claims --base "$RUNNER_TEMP/base/index"
       - name: Check every listed version, running its lifecycle commands
         run: uv run pytemplate_hub verify --run-lifecycle

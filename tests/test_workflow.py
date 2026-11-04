@@ -31,3 +31,7 @@ def test_workflow_refuses_review_claims_before_running_pack_code() -> None:
     steps = _steps()
 
     assert steps.index("check-claims") < steps.index("verify --run-lifecycle")
+
+
+def test_workflow_handles_a_base_with_no_index_yet() -> None:
+    assert 'git cat-file -e "$BASE_SHA:index"' in _steps()
