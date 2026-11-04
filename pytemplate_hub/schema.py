@@ -14,6 +14,8 @@ from pytemplate_hub.errors import EntryError
 
 GITHUB_URL = re.compile(r"^https://github\.com/([A-Za-z0-9-]+)/([A-Za-z0-9._-]+)$")
 PACK_ID = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+NAME_MAX = 100
+DESCRIPTION_MAX = 500
 
 Tag = Annotated[str, Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")]
 Commit = Annotated[str, Field(pattern=r"^[0-9a-f]{40}$")]
@@ -29,7 +31,7 @@ class _Strict(BaseModel):
 class ProfileCheck(_Strict):
     """A profile that planned with its default answers, and whether its lifecycle ran."""
 
-    id: str
+    id: Annotated[str, Field(pattern=PACK_ID.pattern)]
     lifecycle: Literal["passed", "not-run"]
 
 
@@ -57,6 +59,8 @@ class Entry(_Strict):
 
     format: Literal[1] = 1
     repository: str
+    name: Annotated[str, Field(max_length=NAME_MAX)] = ""
+    description: Annotated[str, Field(max_length=DESCRIPTION_MAX)] = ""
     versions: tuple[Version, ...] = ()
 
     @model_validator(mode="after")
@@ -76,6 +80,19 @@ class Entry(_Strict):
         match = GITHUB_URL.match(self.repository)
         assert match is not None  # guaranteed by the validator
         return match.group(1)
+
+    @property
+    def repository_name(self) -> str:
+        """Return the name of the source repository."""
+        match = GITHUB_URL.match(self.repository)
+        assert match is not None  # guaranteed by the validator
+        return match.group(2)
+
+    @property
+    def latest(self) -> Version | None:
+        """Return the most recently listed version that is not yanked."""
+        active = [version for version in self.versions if version.yanked is None]
+        return active[-1] if active else None
 
 
 def entry_path(index: Path, owner: str, pack_id: str) -> Path:
@@ -101,6 +118,11 @@ def load_entry(path: Path) -> Entry:
 def dump_entry(entry: Entry) -> str:
     """Return ``entry`` as TOML, with fields in a stable order so diffs stay reviewable."""
     lines = [f"format = {entry.format}", f"repository = {_text(entry.repository)}"]
+    lines += [
+        f"{name} = {_text(value)}"
+        for name, value in (("name", entry.name), ("description", entry.description))
+        if value
+    ]
     for version in entry.versions:
         lines += ["", "[[versions]]"]
         lines += [
@@ -124,8 +146,9 @@ def dump_entry(entry: Entry) -> str:
 
 
 def _text(value: str) -> str:
-    # A JSON string with ensure_ascii is also a valid TOML basic string.
-    return json.dumps(value)
+    # A JSON string is a valid TOML basic string, apart from a raw DEL. Keeping non-ASCII text raw
+    # avoids surrogate pairs, which TOML rejects.
+    return json.dumps(value, ensure_ascii=False).replace("\x7f", "\\u007f")
 
 
 def _profile(profile: ProfileCheck) -> str:

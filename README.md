@@ -2,8 +2,8 @@
 
 A static, verified index of [pytemplate-uv](https://github.com/yuxuzi/pytemplate-uv) template packs.
 
-**Status: phase 2.** The index format, its checks, and the first listed packs exist. There is no site yet,
-and this repository is private. The name is provisional.
+**Status: phase 3.** The index format, its checks, the first listed packs, and a static site builder
+exist. The site is not published, and this repository is private. The name is provisional.
 
 ## How it works
 
@@ -14,6 +14,8 @@ and each index entry binds a tag to the exact commit and file contents that were
 # index/<github-owner>/<pack-id>.toml
 format = 1
 repository = "https://github.com/acme/sample-pack"
+name = "Sample pack"
+description = "From the pack's manifest; verify compares it with the latest version."
 
 [[versions]]
 tag = "v1.0.0"
@@ -33,6 +35,7 @@ Only contract 1 pytemplate packs at the root of a public GitHub repository can b
 uv run pytemplate_hub add https://github.com/acme/sample-pack --tag v1.0.0 --license MIT
 uv run pytemplate_hub verify                     # fail if a tag moved or a pack stopped passing
 uv run pytemplate_hub check-claims --base OLD    # fail if a change claims a review
+uv run pytemplate_hub site                       # build site/index.html and site/index.json
 ```
 
 `--run-lifecycle` also runs each profile's lifecycle commands. **That executes the pack's code**, so
@@ -51,8 +54,16 @@ Rendering runs with Copier's `unsafe=False`, and `_tasks`, `_migrations`, `_jinj
 symlinks are rejected. That only protects rendering: **a generated project's dependencies, build
 backend, and tests still run code when you use them.** Read a pack before you run what it generates.
 
+## The site
+
+`site` writes one page with search and a reviewed-only filter, plus the same data as JSON. Star counts
+come from GitHub at build time, and comments link to the source repository's issues, so the hub has
+no accounts. `--no-stars` builds without network access. Yanked versions stay in the JSON and leave the
+page.
+
 ## Limits
 
+- Star counts are only as fresh as the last build, and nothing rebuilds the site automatically yet.
 - A pack's generated projects may install dependencies from moving sources, so a passing lifecycle
   result describes those sources as they were at check time.
 - Consumers do not verify the commit or digest yet. pytemplate-uv fetches by tag, so a moved tag is
