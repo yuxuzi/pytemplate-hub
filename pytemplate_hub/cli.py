@@ -1,5 +1,6 @@
 """Command-line interface for pytemplate-hub."""
 
+from datetime import date
 from pathlib import Path
 from typing import Annotated
 
@@ -8,6 +9,7 @@ from rich.console import Console
 
 from pytemplate_hub.errors import HubError
 from pytemplate_hub.fetch import GitFetcher
+from pytemplate_hub.site import build_site, github_stars, no_stars
 from pytemplate_hub.verify import add_version, changed_claims, entry_files, verify_entry
 
 app = typer.Typer(
@@ -86,6 +88,31 @@ def verify(
     if problems:
         raise typer.Exit(1)
     console.print(f"Verified {len(files)} entries.", markup=False, soft_wrap=True)
+
+
+@app.command()
+def site(
+    index: IndexOption = Path("index"),
+    output: Annotated[Path, typer.Option(help="Where to write the site.")] = Path("site"),
+    stars: Annotated[
+        bool, typer.Option("--stars/--no-stars", help="Fetch star counts from GitHub.")
+    ] = True,
+) -> None:
+    """Build the static site from the index."""
+    if not index.is_dir():
+        errors.print(f"{index} is not a directory.", markup=False, soft_wrap=True)
+        raise typer.Exit(1)
+    try:
+        shown = build_site(
+            index,
+            output,
+            stars=github_stars if stars else no_stars,
+            built_on=date.today().isoformat(),
+        )
+    except HubError as error:
+        errors.print(str(error), markup=False, soft_wrap=True)
+        raise typer.Exit(1) from error
+    console.print(f"Built {output} with {shown} packs.", markup=False, soft_wrap=True)
 
 
 def main() -> None:
