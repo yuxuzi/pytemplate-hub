@@ -21,8 +21,8 @@ def directory_digest(root: Path) -> str:
     """Return a SHA-256 over every file's relative path and bytes under ``root``.
 
     Files are hashed in order of their path components, compared as case-sensitive strings, because
-    sorting paths directly ignores case on Windows and would change the result. Symlinks are refused,
-    since Copier would copy their targets into generated projects.
+    sorting paths directly ignores case on Windows and would change the result. Symlinks are
+    refused, since Copier would copy their targets into generated projects.
     """
     digest = hashlib.sha256()
     for path in sorted(root.rglob("*"), key=lambda item: item.relative_to(root).parts):
