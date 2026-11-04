@@ -120,6 +120,35 @@ def test_check_claims_fails_when_a_listed_commit_is_rewritten(tmp_path: Path) ->
     assert "facts" in result.output
 
 
+def test_site_builds_without_network(tmp_path: Path) -> None:
+    index = tmp_path / "index"
+    assert _add(index) == 0
+    output = tmp_path / "out"
+    arguments = ["site", "--index", str(index), "--output", str(output), "--no-stars"]
+
+    result = runner.invoke(cli.app, arguments)
+
+    assert result.exit_code == 0
+    assert "with 1 packs" in result.output
+    assert "Sample pack" in (output / "index.html").read_text(encoding="utf-8")
+
+
+def test_site_fails_for_a_missing_index(tmp_path: Path) -> None:
+    result = runner.invoke(cli.app, ["site", "--index", str(tmp_path / "typo"), "--no-stars"])
+
+    assert result.exit_code == 1
+
+
+def test_site_fails_for_a_malformed_entry(tmp_path: Path) -> None:
+    index = tmp_path / "index"
+    (index / "acme").mkdir(parents=True)
+    (index / "acme" / "pack.toml").write_text("not toml =", encoding="utf-8")
+
+    result = runner.invoke(cli.app, ["site", "--index", str(index), "--no-stars"])
+
+    assert result.exit_code == 1
+
+
 def test_verify_of_an_empty_index_passes(tmp_path: Path) -> None:
     empty = tmp_path / "empty"
     empty.mkdir()
