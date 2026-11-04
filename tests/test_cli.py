@@ -62,6 +62,17 @@ def test_verify_fails_for_a_missing_index(tmp_path: Path) -> None:
     assert "not a directory" in result.output
 
 
+def test_long_messages_are_not_wrapped_on_a_narrow_terminal(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(cli.errors, "_width", 20)
+    missing = tmp_path / "a-long-directory-name-that-does-not-exist"
+
+    result = runner.invoke(cli.app, ["verify", "--index", str(missing)])
+
+    assert f"{missing} is not a directory." in result.output
+
+
 def test_check_claims_fails_when_a_submitter_claims_a_review(tmp_path: Path) -> None:
     index = tmp_path / "index"
     assert _add(index) == 0

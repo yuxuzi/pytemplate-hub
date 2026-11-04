@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import os
 import shutil
+import stat
 import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -13,6 +14,7 @@ from pathlib import Path
 from pytemplate_hub.errors import FetchError
 
 GIT_TIMEOUT_SECONDS = 300.0
+SYMLINK_MODE = "120000"
 
 
 def directory_digest(root: Path) -> str:
@@ -33,6 +35,14 @@ def directory_digest(root: Path) -> str:
     return digest.hexdigest()
 
 
+def _remove_tree(root: Path) -> None:
+    """Remove ``root``, including the read-only git objects Windows refuses to delete."""
+    for path in root.rglob("*"):
+        if path.is_file():
+            path.chmod(stat.S_IWRITE)
+    shutil.rmtree(root)
+
+
 @dataclass(frozen=True)
 class GitFetcher:
     """Fetches tags with git, ignoring the machine's git configuration and credentials.
@@ -48,16 +58,25 @@ class GitFetcher:
         """Check out exactly ``refs/tags/<tag>`` into ``destination``; return its commit SHA.
 
         A tag is fetched by its full ref, so a branch with the same name cannot stand in for it.
-        Submodules are not fetched. The ``.git`` directory is removed before returning.
+        Submodules are not fetched. Symlinks are refused from git's own record, because a Windows
+        checkout may write them as plain files. The ``.git`` directory is removed before returning.
         """
         url = self.clone_url(repository)
         destination.mkdir(parents=True)
         self._git(destination, "init", "--quiet")
         self._git(destination, "fetch", "--quiet", "--depth", "1", url, f"refs/tags/{tag}")
+        self._refuse_symlinks(destination)
         self._git(destination, "checkout", "--quiet", "--detach", "FETCH_HEAD")
         commit = self._git(destination, "rev-parse", "HEAD").strip()
-        shutil.rmtree(destination / ".git")
+        _remove_tree(destination / ".git")
         return commit
+
+    def _refuse_symlinks(self, directory: Path) -> None:
+        listing = self._git(directory, "ls-tree", "-r", "-z", "FETCH_HEAD")
+        for item in filter(None, listing.split("\0")):
+            details, name = item.split("\t", 1)
+            if details.startswith(SYMLINK_MODE):
+                raise FetchError(f"The pack contains a symlink, which is not allowed: {name}")
 
     def _git(self, directory: Path, *arguments: str) -> str:
         git = shutil.which("git")

@@ -40,6 +40,20 @@ def test_a_branch_cannot_stand_in_for_a_tag(
         fetcher.fetch(REPOSITORY, "v9.9.9", tmp_path / "out")
 
 
+def test_symlink_is_refused_before_checkout(
+    source: Path, fetcher: GitFetcher, tmp_path: Path
+) -> None:
+    (source / "stolen").symlink_to("/etc/hosts")
+    git(source, "add", "-A")
+    git(source, "commit", "--quiet", "-m", "link")
+    git(source, "tag", "v3.0.0")
+
+    with pytest.raises(FetchError, match=r"symlink.*stolen"):
+        fetcher.fetch(REPOSITORY, "v3.0.0", tmp_path / "out")
+
+    assert not (tmp_path / "out" / "pytemplate-pack.toml").exists()
+
+
 def test_disallowed_protocol_is_refused(source: Path, tmp_path: Path) -> None:
     https_only = GitFetcher(clone_url=lambda _: source.as_uri())
 

@@ -43,9 +43,9 @@ def add(
             index, repository, tag, license_name, fetcher, run_lifecycle=run_lifecycle
         )
     except (HubError, ValueError) as error:
-        errors.print(str(error), markup=False)
+        errors.print(str(error), markup=False, soft_wrap=True)
         raise typer.Exit(1) from error
-    console.print(f"Recorded {tag} in {path}", markup=False)
+    console.print(f"Recorded {tag} in {path}", markup=False, soft_wrap=True)
 
 
 @app.command("check-claims")
@@ -57,13 +57,13 @@ def check_claims(
     try:
         problems = changed_claims(base, index)
     except HubError as error:
-        errors.print(str(error), markup=False)
+        errors.print(str(error), markup=False, soft_wrap=True)
         raise typer.Exit(1) from error
     for problem in problems:
-        errors.print(problem, markup=False)
+        errors.print(problem, markup=False, soft_wrap=True)
     if problems:
         raise typer.Exit(1)
-    console.print("No protected fields changed.", markup=False)
+    console.print("No protected fields changed.", markup=False, soft_wrap=True)
 
 
 @app.command()
@@ -73,7 +73,7 @@ def verify(
 ) -> None:
     """Re-check every listed version; fail if a tag moved or a pack stopped passing."""
     if not index.is_dir():
-        errors.print(f"{index} is not a directory.", markup=False)
+        errors.print(f"{index} is not a directory.", markup=False, soft_wrap=True)
         raise typer.Exit(1)
     files = entry_files(index)
     problems = [
@@ -82,10 +82,10 @@ def verify(
         for problem in verify_entry(path, fetcher, run_lifecycle=run_lifecycle)
     ]
     for problem in problems:
-        errors.print(problem, markup=False)
+        errors.print(problem, markup=False, soft_wrap=True)
     if problems:
         raise typer.Exit(1)
-    console.print(f"Verified {len(files)} entries.", markup=False)
+    console.print(f"Verified {len(files)} entries.", markup=False, soft_wrap=True)
 
 
 def main() -> None:
