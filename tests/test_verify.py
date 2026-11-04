@@ -148,6 +148,39 @@ def test_verify_passes_for_an_unchanged_tag(fetcher: GitFetcher, tmp_path: Path)
     assert verify_entry(path, fetcher) == []
 
 
+def test_add_records_the_pack_name_and_description(fetcher: GitFetcher, tmp_path: Path) -> None:
+    entry = load_entry(_add(tmp_path / "index", fetcher))
+
+    assert entry.name == "Sample pack"
+    assert entry.description.startswith("A minimal template pack")
+
+
+def test_verify_reports_a_faked_description(fetcher: GitFetcher, tmp_path: Path) -> None:
+    path = _add(tmp_path / "index", fetcher)
+    entry = load_entry(path)
+    faked = entry.model_copy(update={"description": "Trusted by everyone"})
+    path.write_text(dump_entry(faked), encoding="utf-8")
+
+    assert any("the description changed" in problem for problem in verify_entry(path, fetcher))
+
+
+def test_verify_compares_the_description_only_with_the_latest_version(
+    source: Path, fetcher: GitFetcher, tmp_path: Path
+) -> None:
+    index = tmp_path / "index"
+    _add(index, fetcher)
+    manifest = source / "pytemplate-pack.toml"
+    text = manifest.read_text(encoding="utf-8")
+    manifest.write_text(text.replace("A minimal template pack", "A better pack"), encoding="utf-8")
+    commit_all(source)
+    git(source, "tag", "v1.1.0")
+
+    path = _add(index, fetcher, "v1.1.0")
+
+    assert load_entry(path).description.startswith("A better pack")
+    assert verify_entry(path, fetcher) == []
+
+
 def test_verify_reports_a_moved_tag(source: Path, fetcher: GitFetcher, tmp_path: Path) -> None:
     path = _add(tmp_path / "index", fetcher)
     (source / "README.md").write_text("changed\n", encoding="utf-8")
