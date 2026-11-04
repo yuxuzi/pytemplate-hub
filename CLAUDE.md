@@ -32,7 +32,9 @@ A static, verified index of pytemplate-uv template packs. A typed Python 3.11+ p
 - The hub stores references, never template files, and has no accounts or server.
 - Never add self-declared quality fields. Quality signals are computed, or name a reviewer.
 - `.github/workflows/verify-index.yml` runs untrusted code: never give it secrets or write access.
-- Neither pytemplate-uv nor quant-agent-os may depend on the hub or contact it by default.
+- The hub is generic and independent, like pytemplate-uv. It never imports, depends on, or names a
+  publisher or consumer, and gives none special treatment. Index entries are the only exception,
+  because they are data.
 
 ## Conventions
 

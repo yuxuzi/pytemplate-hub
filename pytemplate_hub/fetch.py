@@ -20,8 +20,7 @@ SYMLINK_MODE = "120000"
 def directory_digest(root: Path) -> str:
     """Return a SHA-256 over every file's relative path and bytes under ``root``.
 
-    Uses the same framing as Quant App Factory's digest of a pack, but hashes every file. Symlinks
-    are refused, since Copier would copy their targets into generated projects.
+    Symlinks are refused, since Copier would copy their targets into generated projects.
     """
     digest = hashlib.sha256()
     for path in sorted(root.rglob("*")):
