@@ -6,6 +6,7 @@ import os
 import shlex
 import subprocess
 import tempfile
+import tomllib
 from collections.abc import Callable
 from dataclasses import dataclass
 from importlib.metadata import version as installed_version
@@ -26,6 +27,7 @@ from pytemplate_hub.schema import (
 )
 
 CHECK_PROJECT = "hub-check"
+PACK_MANIFEST = "pytemplate-pack.toml"
 LICENSE_FILES = ("LICENSE", "LICENSE.md", "LICENSE.txt", "COPYING")
 LIFECYCLE_TIMEOUT_SECONDS = 600.0
 # Programs a pack's lifecycle commands may start. `uv run` still runs the pack's own code, so
@@ -48,7 +50,19 @@ class PackCheck:
 
     pack_id: str
     pack_version: str
+    name: str
+    description: str
     profiles: tuple[ProfileCheck, ...]
+
+
+@dataclass(frozen=True)
+class Inspected:
+    """A fetched and checked version, with the pack's own name and description."""
+
+    pack_id: str
+    name: str
+    description: str
+    version: Version
 
 
 def run_program(
@@ -91,7 +105,10 @@ def check_pack(
     except _PACK_ERRORS as error:
         raise PackCheckError(f"The pack failed its checks: {error}") from error
     assert source.pack_id is not None and source.pack_version is not None  # set for every pack
-    return PackCheck(source.pack_id, source.pack_version, checks)
+    manifest = tomllib.loads((root / PACK_MANIFEST).read_text(encoding="utf-8"))
+    return PackCheck(
+        source.pack_id, source.pack_version, manifest["name"], manifest["description"], checks
+    )
 
 
 def _check_profile(root: Path, profile: str, run_lifecycle: bool, runner: Runner) -> ProfileCheck:
@@ -133,14 +150,14 @@ def inspect_version(
     fetcher: GitFetcher,
     *,
     run_lifecycle: bool = False,
-) -> tuple[str, Version]:
-    """Fetch and check ``tag``; return the pack id and the version record that binds to it."""
+) -> Inspected:
+    """Fetch and check ``tag``; return the pack's details and the version record bound to it."""
     with tempfile.TemporaryDirectory(prefix="pytemplate-hub-") as scratch:
         root = Path(scratch) / "pack"
         commit = fetcher.fetch(repository, tag, root)
         digest = directory_digest(root)
         check = check_pack(root, run_lifecycle=run_lifecycle)
-    return check.pack_id, Version(
+    version = Version(
         tag=tag,
         commit=commit,
         digest=digest,
@@ -149,6 +166,7 @@ def inspect_version(
         checked_with=f"pytemplate-uv=={installed_version('pytemplate-uv')}",
         profiles=check.profiles,
     )
+    return Inspected(check.pack_id, check.name, check.description, version)
 
 
 def add_version(
@@ -164,17 +182,20 @@ def add_version(
     match = GITHUB_URL.match(repository)
     owner = match.group(1) if match else ""
     entry = Entry(repository=repository)
-    pack_id, version = inspect_version(
-        repository, tag, license_name, fetcher, run_lifecycle=run_lifecycle
-    )
-    path = entry_path(index, owner, pack_id)
+    found = inspect_version(repository, tag, license_name, fetcher, run_lifecycle=run_lifecycle)
+    path = entry_path(index, owner, found.pack_id)
     if path.exists():
         entry = load_entry(path)
         if entry.repository != repository:
             raise PackCheckError(f"{path} already lists this pack from {entry.repository}.")
         if any(listed.tag == tag for listed in entry.versions):
             raise PackCheckError(f"{path} already lists {tag}.")
-    updated = Entry(repository=repository, versions=(*entry.versions, version))
+    updated = Entry(
+        repository=repository,
+        name=found.name,
+        description=found.description,
+        versions=(*entry.versions, found.version),
+    )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(dump_entry(updated), encoding="utf-8")
     return path
@@ -202,20 +223,26 @@ def verify_entry(path: Path, fetcher: GitFetcher, *, run_lifecycle: bool = False
 def _verify_version(
     path: Path, entry: Entry, listed: Version, fetcher: GitFetcher, run_lifecycle: bool
 ) -> list[str]:
-    pack_id, current = inspect_version(
+    found = inspect_version(
         entry.repository, listed.tag, listed.license, fetcher, run_lifecycle=run_lifecycle
     )
-    expected = (
+    current = found.version
+    expected = [
         ("commit", listed.commit, current.commit),
         ("digest", listed.digest, current.digest),
         ("pack version", listed.pack_version, current.pack_version),
-        ("pack id", path.stem, pack_id),
+        ("pack id", path.stem, found.pack_id),
         (
             "profiles",
             sorted(profile.id for profile in listed.profiles),
             sorted(profile.id for profile in current.profiles),
         ),
-    )
+    ]
+    if listed == entry.latest:
+        expected += [
+            ("name", entry.name, found.name),
+            ("description", entry.description, found.description),
+        ]
     return [
         f"{path} {listed.tag}: the {name} changed: listed {was}, found {now}."
         for name, was, now in expected

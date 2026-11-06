@@ -1,0 +1,13 @@
+format = 1
+repository = "https://github.com/yuxuzi/quant-baseline"
+name = "Quant-Agent-OS quant baseline templates"
+description = "A portable, bias-tested quant research project: study, backtest, and report in one."
+
+[[versions]]
+tag = "v2.0.0"
+commit = "20dd4f605edf3bbfe66a4a0085820b8e98a5bcc0"
+digest = "26a41a269ce418333acb8baeef075f5d1f3cc6a8c762ff079d5cc015e78fa8e7"
+pack_version = "2.0.0"
+license = "MIT"
+checked_with = "pytemplate-uv==3.0.0"
+profiles = [{ id = "quant-research", lifecycle = "passed" }]
