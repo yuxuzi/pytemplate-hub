@@ -92,11 +92,16 @@ def no_stars(_: Entry) -> None:
 
 
 def create_command(entry: Entry, version: Version, profile: str) -> str:
-    """Return the command that creates a project from ``profile`` at the listed tag."""
+    """Return the command that creates a project from ``profile`` at the listed tag.
+
+    The commit and digest make pytemplate-uv (3.1 or later) refuse the pack if the tag moved or
+    its files changed since the hub checked it.
+    """
     source = f"gh:{entry.owner}/{entry.repository_name}"
     return (
-        f"uvx pytemplate-uv create my-project -p {profile} "
-        f"--template {source} --template-ref {version.tag} --no-input"
+        f"uvx pytemplate-uv@latest create my-project -p {profile} "
+        f"--template {source} --template-ref {version.tag} "
+        f"--template-commit {version.commit} --template-digest {version.digest} --no-input"
     )
 
 
