@@ -1,0 +1,13 @@
+format = 1
+repository = "https://github.com/yuxuzi/quant-apps"
+name = "Quant-Agent-OS applications"
+description = "One customizable application for each stage of a fund's investment process: alpha research, strategy backtest, risk monitor, and performance report."
+
+[[versions]]
+tag = "v1.0.1"
+commit = "70677715e6cb04b1ce3b0dc3b076565d7fa8f070"
+digest = "c63c7ef4ad31d24def1968e599e6dfb8b071d4087edc97142f4a18b5e714496c"
+pack_version = "1.0.1"
+license = "MIT"
+checked_with = "pytemplate-uv==3.1.0"
+profiles = [{ id = "alpha-research", lifecycle = "passed" }, { id = "performance-report", lifecycle = "passed" }, { id = "risk-monitor", lifecycle = "passed" }, { id = "strategy-backtest", lifecycle = "passed" }]

@@ -11,3 +11,12 @@ pack_version = "1.0.0"
 license = "MIT"
 checked_with = "pytemplate-uv==3.0.0"
 profiles = [{ id = "agent-tool", lifecycle = "passed" }]
+
+[[versions]]
+tag = "v1.0.1"
+commit = "65e664286eba5122dca808013995c725becd75a1"
+digest = "b3147ea1b92f11ac72504b1b0e40004187938d98e1379fd266eadcbde6c730d9"
+pack_version = "1.0.1"
+license = "MIT"
+checked_with = "pytemplate-uv==3.1.0"
+profiles = [{ id = "agent-tool", lifecycle = "passed" }]
