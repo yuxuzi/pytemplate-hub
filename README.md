@@ -2,8 +2,9 @@
 
 A static, verified index of [pytemplate-uv](https://github.com/yuxuzi/pytemplate-uv) template packs.
 
-**Status: phase 3.** The index format, its checks, the first listed packs, and a static site builder
-exist. The site is not published, and this repository is private. The name is provisional.
+**Status: phase 4.** The index format, its checks, the first listed packs, and a static site builder
+exist, and the site's commands pin each pack to its checked commit and digest. The site is not
+published, and this repository is private. The name is provisional.
 
 ## How it works
 
@@ -66,8 +67,9 @@ page.
 - Star counts are only as fresh as the last build, and nothing rebuilds the site automatically yet.
 - A pack's generated projects may install dependencies from moving sources, so a passing lifecycle
   result describes those sources as they were at check time.
-- Consumers do not verify the commit or digest yet. pytemplate-uv fetches by tag, so a moved tag is
-  only caught by the hub's own `verify`. Closing this gap is phase 4.
+- The site's commands pass the listed commit and digest, so pytemplate-uv 3.1 or later refuses a pack
+  whose tag moved or whose files changed. A command typed without `--template-commit` and
+  `--template-digest` still fetches by tag alone.
 - `reviewed_by` has no signature behind it. `check-claims` makes a submitter's claim fail CI, and a
   maintainer must still read the diff, because a pull request can also change the hub's own code.
 - The `pull_request` CI job has no secrets, but it does have network access.
