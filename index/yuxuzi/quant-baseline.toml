@@ -29,3 +29,12 @@ pack_version = "3.1.1"
 license = "MIT"
 checked_with = "pytemplate-uv==3.1.0"
 profiles = [{ id = "quant-lab", lifecycle = "passed" }]
+
+[[versions]]
+tag = "v4.0.0"
+commit = "3f39368bfcdbd58004f94da611821f5d3aa0a76c"
+digest = "9304709b2294b4a599bb6b60ae57ae0bd45b5e91c09cee57c86f7d2d602f1b2e"
+pack_version = "4.0.0"
+license = "MIT"
+checked_with = "pytemplate-uv==3.1.0"
+profiles = [{ id = "quant-lab", lifecycle = "passed" }]
