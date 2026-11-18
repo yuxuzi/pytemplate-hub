@@ -27,5 +27,5 @@ commit = "8028532a51a047fb90e2ea9d47e5aad977ca380a"
 digest = "23ddb2dd8472ce6616c1b79fc76e4f5ef95f322adee6f2ab65bc375b8f5b4370"
 pack_version = "2.2.0"
 license = "MIT"
-checked_with = "pytemplate-uv==3.1.0"
+checked_with = "pytemplate-uv==3.2.0"
 profiles = [{ id = "alpha-research", lifecycle = "passed" }, { id = "performance-report", lifecycle = "passed" }, { id = "risk-monitor", lifecycle = "passed" }, { id = "strategy-backtest", lifecycle = "passed" }]
