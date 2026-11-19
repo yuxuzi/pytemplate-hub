@@ -29,3 +29,12 @@ pack_version = "2.2.0"
 license = "MIT"
 checked_with = "pytemplate-uv==3.2.0"
 profiles = [{ id = "alpha-research", lifecycle = "passed" }, { id = "performance-report", lifecycle = "passed" }, { id = "risk-monitor", lifecycle = "passed" }, { id = "strategy-backtest", lifecycle = "passed" }]
+
+[[versions]]
+tag = "v2.2.1"
+commit = "27c5c44d508b0deaa1a663417fc86b074335659a"
+digest = "a52521de0810d5799ba372dfba2f18a6a173af5f97b3bb9070220d99e99b25f2"
+pack_version = "2.2.1"
+license = "MIT"
+checked_with = "pytemplate-uv==3.2.0"
+profiles = [{ id = "alpha-research", lifecycle = "passed" }, { id = "performance-report", lifecycle = "passed" }, { id = "risk-monitor", lifecycle = "passed" }, { id = "strategy-backtest", lifecycle = "passed" }]
