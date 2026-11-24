@@ -84,7 +84,7 @@ Local fixtures only (no network). Probe scripts were run from the scratchpad aga
 - **P1-7** Pin `unsafe=False` through `api.render` with a test (`verify.py:114-126`). Fix: add the test. Fixed in fix/audit-p1 (the `_tasks` rejection test already existed; this pins the `RenderRequest` shape, not the value pytemplate-uv passes).
 - **P1-8** EOL and `.gitattributes` may change digests across OSes (`fetch.py:89`; unverified). Fix: verify on Windows; reject EOL attributes.
 - **P2-1** Tags `v1..0` and `*.lock` accepted (`schema.py:20`). Fix: apply git ref rules before fetching. Fixed in fix/audit-p1.
-- **P2-2** Dot-segment repository names accepted (`schema.py:15`). Fix: refuse `.` and `..` segments.
+- **P2-2** Dot-segment repository names accepted (`schema.py:15`). Fix: refuse `.` and `..` segments. Fixed in fix/audit-p1.
 - **P2-3** Executable bit and empty directories not hashed (`fetch.py:28-36`). Fix: hash a manifest of modes and directories.
 - **P2-4** Submodules silently excluded (`fetch.py:58-73`; unverified). Fix: refuse mode 160000.
 - **P2-5** Stars: no token, no cache, silent failure, unbounded body (`site.py:76-87`). Fix: C3.

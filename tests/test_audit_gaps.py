@@ -45,10 +45,6 @@ def test_non_utf8_entry_is_reported_as_an_entry_error(tmp_path: Path) -> None:
         load_entry(path)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="audit tag and commit validation: a repository named '..' or '.' is accepted",
-)
 @pytest.mark.parametrize("repository", ["https://github.com/acme/..", "https://github.com/acme/."])
 def test_repository_name_cannot_be_a_dot_segment(repository: str) -> None:
     with pytest.raises(ValueError):

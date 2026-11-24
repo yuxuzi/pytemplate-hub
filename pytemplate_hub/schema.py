@@ -100,9 +100,15 @@ class Entry(_Strict):
 
     @model_validator(mode="after")
     def _check(self) -> Entry:
-        if not GITHUB_URL.match(self.repository) or self.repository.endswith(".git"):
+        match = GITHUB_URL.match(self.repository)
+        if not match or self.repository.endswith(".git"):
             raise ValueError(
                 f"repository must look like https://github.com/owner/repo, got {self.repository!r}"
+            )
+        if match.group(2) in (".", ".."):
+            raise ValueError(
+                f"repository name must not be '.' or '..', got {self.repository!r}. "
+                "Use the repository's own name."
             )
         tags = [version.tag for version in self.versions]
         if len(tags) != len(set(tags)):
