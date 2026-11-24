@@ -81,7 +81,7 @@ Local fixtures only (no network). Probe scripts were run from the scratchpad aga
 - **P1-4** Declared license never compared with the license file (`verify.py:97-98`, `:243-250`). Fix: check the declaration or require review.
 - **P1-5** No CODEOWNERS on `index/` or hub code (`.github/`). Fix: add `CODEOWNERS`.
 - **P1-6** Lifecycle allow-list is a naming check; `uv run` runs any program; no network isolation (`verify.py:131-133`, `:140-143`). Fix: document as not a sandbox; run in a no-network container.
-- **P1-7** Pin `unsafe=False` through `api.render` with a test (`verify.py:114-126`). Fix: add the test.
+- **P1-7** Pin `unsafe=False` through `api.render` with a test (`verify.py:114-126`). Fix: add the test. Fixed in fix/audit-p1 (the `_tasks` rejection test already existed; this pins the `RenderRequest` shape, not the value pytemplate-uv passes).
 - **P1-8** EOL and `.gitattributes` may change digests across OSes (`fetch.py:89`; unverified). Fix: verify on Windows; reject EOL attributes.
 - **P2-1** Tags `v1..0` and `*.lock` accepted (`schema.py:20`). Fix: apply git ref rules before fetching.
 - **P2-2** Dot-segment repository names accepted (`schema.py:15`). Fix: refuse `.` and `..` segments.

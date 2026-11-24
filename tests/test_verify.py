@@ -1,8 +1,10 @@
 """Tests for the listing checks and for re-verifying listed versions."""
 
+import dataclasses
 from pathlib import Path
 
 import pytest
+from pytemplate import api
 
 from pytemplate_hub import verify
 from pytemplate_hub.errors import FetchError, PackCheckError
@@ -85,6 +87,14 @@ def test_pack_declaring_code_running_settings_is_rejected(pack_dir: Path, settin
 
     with pytest.raises(PackCheckError, match=setting):
         check_pack(pack_dir)
+
+
+def test_render_request_has_no_unsafe_option() -> None:
+    """Rendering runs Copier with ``unsafe=False`` (pytemplate-uv, rendering.py). A request has no
+    field that can turn it on, so a pack cannot opt out of that protection through the hub."""
+    names = {field.name for field in dataclasses.fields(api.RenderRequest)}
+
+    assert not any("unsafe" in name for name in names)
 
 
 def test_pack_with_a_symlink_is_rejected(pack_dir: Path) -> None:
