@@ -153,7 +153,7 @@ def test_create_command_is_exact() -> None:
     assert command == (
         "uvx pytemplate-uv@latest create my-project -p tool "
         "--template gh:Acme/repo --template-ref v1.0.0 "
-        f"--template-commit {'a' * 40} --template-digest {'b' * 64} --no-input"
+        f"--template-commit {'a' * 40} --template-digest {'b' * 64} -y"
     )
 
 
