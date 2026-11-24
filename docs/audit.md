@@ -76,7 +76,7 @@ Local fixtures only (no network). Probe scripts were run from the scratchpad aga
 
 - **P0-1** PR-controlled checker (`verify-index.yml:25`, `:34`, `:36`). Fix: run hub tooling from the base SHA; read the PR's `index/` as data.
 - **P1-1** Manifest pack id writes outside the index (`verify.py:186`). Fix: validate with `PACK_ID` before `entry_path`. Fixed in fix/audit-p1.
-- **P1-2** Non-UTF-8 entry crashes instead of failing as `EntryError` (`schema.py:106-107`). Fix: catch `UnicodeDecodeError` in `load_entry`.
+- **P1-2** Non-UTF-8 entry crashes instead of failing as `EntryError` (`schema.py:106-107`). Fix: catch `UnicodeDecodeError` in `load_entry`. Fixed in fix/audit-p1.
 - **P1-3** Deleted listed versions pass `check-claims` (`verify.py:258-275`). Fix: flag any removed or altered listed version.
 - **P1-4** Declared license never compared with the license file (`verify.py:97-98`, `:243-250`). Fix: check the declaration or require review.
 - **P1-5** No CODEOWNERS on `index/` or hub code (`.github/`). Fix: add `CODEOWNERS`.

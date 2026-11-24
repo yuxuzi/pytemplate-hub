@@ -32,10 +32,6 @@ def _version(tag: str = "v1.0.0") -> Version:
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="audit error handling: a non-UTF-8 entry raises UnicodeDecodeError, not EntryError",
-)
 def test_non_utf8_entry_is_reported_as_an_entry_error(tmp_path: Path) -> None:
     path = tmp_path / "acme" / "tools.toml"
     path.parent.mkdir()

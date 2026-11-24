@@ -104,7 +104,7 @@ def load_entry(path: Path) -> Entry:
     """Read an entry, and check that its path names its repository's owner and a valid pack id."""
     try:
         entry = Entry.model_validate(tomllib.loads(path.read_text(encoding="utf-8")))
-    except (OSError, tomllib.TOMLDecodeError, ValidationError) as error:
+    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError, ValidationError) as error:
         raise EntryError(f"{path}: {error}") from error
     if not PACK_ID.match(path.stem):
         raise EntryError(f"{path}: the file name must be a lowercase pack id.")
