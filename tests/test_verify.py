@@ -11,6 +11,7 @@ from pytemplate_hub.schema import Entry, ProfileCheck, Version, dump_entry, load
 from pytemplate_hub.verify import (
     Inspected,
     add_version,
+    changed_claims,
     check_pack,
     entry_files,
     verify_entry,
@@ -260,3 +261,38 @@ def test_entry_files_lists_only_entries(fetcher: GitFetcher, tmp_path: Path) -> 
     (index / "README.md").write_text("notes\n", encoding="utf-8")
 
     assert entry_files(index) == [path]
+
+
+def _write_entry(root: Path, entry: Entry) -> None:
+    path = root / "acme" / "tools.toml"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(dump_entry(entry), encoding="utf-8")
+
+
+def test_removed_version_message_says_to_yank(tmp_path: Path) -> None:
+    base, head = tmp_path / "base", tmp_path / "head"
+    _write_entry(base, Entry(repository=REPOSITORY, versions=(_version(),)))
+    _write_entry(head, Entry(repository=REPOSITORY))
+
+    assert changed_claims(base, head) == [
+        "acme/tools.toml v1.0.0: removes a listed version; yank it instead."
+    ]
+
+
+def test_deleted_entry_file_is_reported(tmp_path: Path) -> None:
+    base, head = tmp_path / "base", tmp_path / "head"
+    _write_entry(base, Entry(repository=REPOSITORY, versions=(_version(),)))
+    head.mkdir()
+
+    problems = changed_claims(base, head)
+
+    assert problems == ["acme/tools.toml: deletes a whole entry; yank its versions instead."]
+
+
+def test_yanking_a_version_is_not_reported(tmp_path: Path) -> None:
+    base, head = tmp_path / "base", tmp_path / "head"
+    _write_entry(base, Entry(repository=REPOSITORY, versions=(_version(),)))
+    yanked = _version().model_copy(update={"yanked": "A bad release"})
+    _write_entry(head, Entry(repository=REPOSITORY, versions=(yanked,)))
+
+    assert changed_claims(base, head) == []

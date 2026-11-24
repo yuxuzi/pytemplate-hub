@@ -263,17 +263,29 @@ def entry_files(index: Path) -> list[Path]:
 
 
 def changed_claims(base: Path, index: Path) -> list[str]:
-    """Return changes that need a maintainer: review claims and rewritten version facts.
+    """Return changes that need a maintainer, comparing the index with its base.
 
+    Reported: an added review claim; a changed fact of a listed version; a listed version that the
+    index removes (yank it instead); and an entry file that the index deletes from the base.
     Only ``reviewed_by`` and ``yanked`` may change on a listed version. Any added review claim is
     reported, so a maintainer recording a real review overrides this check deliberately.
     """
     problems: list[str] = []
+    present = {path.relative_to(index) for path in entry_files(index)}
+    for path in entry_files(base):
+        relative = path.relative_to(base)
+        if relative not in present:
+            problems.append(f"{relative}: deletes a whole entry; yank its versions instead.")
     for path in entry_files(index):
         relative = path.relative_to(index)
         before = load_entry(base / relative) if (base / relative).is_file() else None
         listed = {version.tag: version for version in before.versions} if before else {}
-        for version in load_entry(path).versions:
+        versions = load_entry(path).versions
+        after = {version.tag for version in versions}
+        for tag in listed:
+            if tag not in after:
+                problems.append(f"{relative} {tag}: removes a listed version; yank it instead.")
+        for version in versions:
             old = listed.get(version.tag)
             if version.reviewed_by and (old is None or old.reviewed_by != version.reviewed_by):
                 problems.append(f"{relative} {version.tag}: adds a review claim.")

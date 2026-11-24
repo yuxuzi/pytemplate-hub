@@ -69,10 +69,6 @@ def test_manifest_pack_id_cannot_escape_the_index(
     assert not (tmp_path / "escape.toml").exists()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="audit reviewed status: a change that deletes a listed version passes check-claims",
-)
 def test_removing_a_listed_version_is_reported(tmp_path: Path) -> None:
     base = tmp_path / "base"
     head = tmp_path / "head"
