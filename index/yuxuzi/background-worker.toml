@@ -1,0 +1,13 @@
+format = 1
+repository = "https://github.com/yuxuzi/background-worker"
+name = "Background workers"
+description = "Python job workers with typed jobs, retries with backoff, graceful shutdown, and tests that need no broker."
+
+[[versions]]
+tag = "v1.0.0"
+commit = "13c7c022638b96363fce505a23b94adc201b9082"
+digest = "8077f8d6abebbfb3f1e407423214ba2b4059f284b7d5647734420954931a90da"
+pack_version = "1.0.0"
+license = "MIT"
+checked_with = "pytemplate-uv==3.2.0"
+profiles = [{ id = "worker", lifecycle = "passed" }, { id = "worker-redis", lifecycle = "passed" }]

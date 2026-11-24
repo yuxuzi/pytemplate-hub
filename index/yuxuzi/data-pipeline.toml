@@ -1,0 +1,13 @@
+format = 1
+repository = "https://github.com/yuxuzi/data-pipeline"
+name = "Data pipelines"
+description = "Typed extract-transform-load pipelines in Python with tested steps, sample data, and a command to run them."
+
+[[versions]]
+tag = "v1.0.0"
+commit = "e885cafd4402191e358ff7f63f2bf1aa28a23b37"
+digest = "e05bf18aa98c0272ba3331621521000b12c8c5a3cb4798a714a28a097b3dcd65"
+pack_version = "1.0.0"
+license = "MIT"
+checked_with = "pytemplate-uv==3.2.0"
+profiles = [{ id = "etl", lifecycle = "passed" }, { id = "etl-polars", lifecycle = "passed" }]
