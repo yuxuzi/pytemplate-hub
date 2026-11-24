@@ -161,7 +161,7 @@ def _card(entry: Entry, pack: dict[str, Any]) -> str:
 <span class="tier {latest.tier}">{escape(tier)}</span></div>
 <p class="id">{escape(identifier)}</p>
 <p class="description">{escape(entry.description)}</p>
-<p class="facts" title="{latest.commit}">{escape(facts)}</p>
+<p class="facts" title="{escape(latest.commit, quote=True)}">{escape(facts)}</p>
 {commands}
 <p class="links"><a href="{escape(entry.repository)}" rel="noopener nofollow">Source</a> ·
 <a href="{escape(entry.repository)}/issues" rel="noopener nofollow">Comments and issues</a></p>

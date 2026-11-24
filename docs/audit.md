@@ -89,6 +89,6 @@ Local fixtures only (no network). Probe scripts were run from the scratchpad aga
 - **P2-4** Submodules silently excluded (`fetch.py:58-73`; unverified). Fix: refuse mode 160000.
 - **P2-5** Stars: no token, no cache, silent failure, unbounded body (`site.py:76-87`). Fix: C3.
 - **P2-6** JSON has no schema file (`site.py:120-121`). Fix: B2.
-- **P2-7** Commit in a `title` attribute is unescaped (`site.py:164`). Fix: escape it.
+- **P2-7** Commit in a `title` attribute is unescaped (`site.py:164`). Fix: escape it. Fixed in fix/audit-p1.
 - **P2-8** Yanking is unrestricted (`verify.py:258-275`). Fix: C2.
 - **P2-9** `manifest["name"]` read outside `try` (`verify.py:108-110`; unverified). Fix: wrap it.
