@@ -4,15 +4,34 @@ from pathlib import Path
 
 import pytest
 
+from pytemplate_hub import verify
 from pytemplate_hub.errors import FetchError, PackCheckError
 from pytemplate_hub.fetch import GitFetcher
-from pytemplate_hub.schema import Entry, dump_entry, load_entry
-from pytemplate_hub.verify import add_version, check_pack, entry_files, verify_entry
+from pytemplate_hub.schema import Entry, ProfileCheck, Version, dump_entry, load_entry
+from pytemplate_hub.verify import (
+    Inspected,
+    add_version,
+    check_pack,
+    entry_files,
+    verify_entry,
+)
 from tests.conftest import REPOSITORY, commit_all, git
 
 
 def _add(index: Path, fetcher: GitFetcher, tag: str = "v1.0.0") -> Path:
     return add_version(index, REPOSITORY, tag, "MIT", fetcher)
+
+
+def _version() -> Version:
+    return Version(
+        tag="v1.0.0",
+        commit="a" * 40,
+        digest="b" * 64,
+        pack_version="1.0.0",
+        license="MIT",
+        checked_with="pytemplate-uv==3.0.0",
+        profiles=(ProfileCheck(id="tool", lifecycle="not-run"),),
+    )
 
 
 def test_sample_pack_passes_without_running_its_code(pack_dir: Path) -> None:
@@ -135,6 +154,21 @@ def test_a_different_repository_cannot_take_over_an_entry(
 
     with pytest.raises(PackCheckError, match="already lists this pack"):
         add_version(index, "https://github.com/acme/other", "v1.0.0", "MIT", fetcher)
+
+
+@pytest.mark.parametrize("pack_id", ["../../escape", "Tools", "a/b", "-leading", "a\n"])
+def test_add_refuses_a_manifest_pack_id_that_is_not_allowed(
+    pack_id: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    def hostile(*_: object, **__: object) -> Inspected:
+        return Inspected(pack_id, "Tools", "", _version())
+
+    monkeypatch.setattr(verify, "inspect_version", hostile)
+    index = tmp_path / "index"
+
+    with pytest.raises(PackCheckError, match=r"pack id .* is not allowed"):
+        add_version(index, REPOSITORY, "v1.0.0", "MIT", fetcher=None)  # type: ignore[arg-type]
+    assert not index.exists()
 
 
 def test_add_refuses_a_non_github_repository(fetcher: GitFetcher, tmp_path: Path) -> None:

@@ -18,6 +18,7 @@ from pytemplate_hub.errors import FetchError, HubError, PackCheckError
 from pytemplate_hub.fetch import GitFetcher, directory_digest
 from pytemplate_hub.schema import (
     GITHUB_URL,
+    PACK_ID,
     Entry,
     ProfileCheck,
     Version,
@@ -183,6 +184,12 @@ def add_version(
     owner = match.group(1) if match else ""
     entry = Entry(repository=repository)
     found = inspect_version(repository, tag, license_name, fetcher, run_lifecycle=run_lifecycle)
+    if not PACK_ID.fullmatch(found.pack_id):
+        raise PackCheckError(
+            f"The manifest's pack id {found.pack_id!r} is not allowed. A pack id must match "
+            f"{PACK_ID.pattern}: lowercase letters, digits, and hyphens. Rename the pack in "
+            f"{PACK_MANIFEST} and tag again."
+        )
     path = entry_path(index, owner, found.pack_id)
     if path.exists():
         entry = load_entry(path)

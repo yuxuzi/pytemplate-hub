@@ -59,11 +59,6 @@ def test_repository_name_cannot_be_a_dot_segment(repository: str) -> None:
         Entry(repository=repository)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="audit index schema: a pack id taken from the pack's manifest is used as a path "
-    "before it is validated, so it can point outside the index",
-)
 def test_manifest_pack_id_cannot_escape_the_index(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
