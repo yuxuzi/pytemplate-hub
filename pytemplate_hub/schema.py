@@ -8,16 +8,51 @@ import tomllib
 from pathlib import Path
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationError,
+    model_validator,
+)
 
 from pytemplate_hub.errors import EntryError
 
 GITHUB_URL = re.compile(r"^https://github\.com/([A-Za-z0-9-]+)/([A-Za-z0-9._-]+)$")
 PACK_ID = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+TAG_CHARACTERS = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 NAME_MAX = 100
 DESCRIPTION_MAX = 500
 
-Tag = Annotated[str, Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")]
+
+def tag_problem(tag: str) -> str | None:
+    """Return why git would refuse ``tag`` as a tag name, or None when the name is acceptable.
+
+    Beyond the character pattern, git refuses a name that contains ``..`` or ``@{``, ends in
+    ``.lock``, or ends in ``.`` or ``/``. Checking these before a fetch saves a late git error.
+    """
+    if not TAG_CHARACTERS.match(tag):
+        return "it must start with a letter or digit and use only letters, digits, '.', '_', '-'"
+    if ".." in tag:
+        return "it contains '..'"
+    if "@{" in tag:
+        return "it contains '@{'"
+    if tag.endswith(".lock"):
+        return "it ends in '.lock'"
+    if tag.endswith((".", "/")):
+        return "it ends in '.' or '/'"
+    return None
+
+
+def _check_tag(tag: str) -> str:
+    problem = tag_problem(tag)
+    if problem is not None:
+        raise ValueError(f"tag {tag!r} is not a valid git tag name: {problem}.")
+    return tag
+
+
+Tag = Annotated[str, Field(pattern=TAG_CHARACTERS.pattern), AfterValidator(_check_tag)]
 Commit = Annotated[str, Field(pattern=r"^[0-9a-f]{40}$")]
 Digest = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
 License = Annotated[str, Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9.+ ()-]*$")]

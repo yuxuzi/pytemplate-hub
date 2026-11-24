@@ -25,6 +25,7 @@ from pytemplate_hub.schema import (
     dump_entry,
     entry_path,
     load_entry,
+    tag_problem,
 )
 
 CHECK_PROJECT = "hub-check"
@@ -179,10 +180,16 @@ def add_version(
     *,
     run_lifecycle: bool = False,
 ) -> Path:
-    """Check ``tag`` and record it in the pack's entry, creating the entry if needed."""
+    """Check ``tag`` and record it in the pack's entry, creating the entry if needed.
+
+    A tag git would refuse is reported before anything is fetched.
+    """
     match = GITHUB_URL.match(repository)
     owner = match.group(1) if match else ""
     entry = Entry(repository=repository)
+    problem = tag_problem(tag)
+    if problem is not None:
+        raise FetchError(f"Tag {tag!r} cannot be fetched: {problem}. Use a tag name git accepts.")
     found = inspect_version(repository, tag, license_name, fetcher, run_lifecycle=run_lifecycle)
     if not PACK_ID.fullmatch(found.pack_id):
         raise PackCheckError(

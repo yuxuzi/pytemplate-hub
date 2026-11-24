@@ -4,12 +4,20 @@ import dataclasses
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 from pytemplate import api
 
 from pytemplate_hub import verify
 from pytemplate_hub.errors import FetchError, PackCheckError
 from pytemplate_hub.fetch import GitFetcher
-from pytemplate_hub.schema import Entry, ProfileCheck, Version, dump_entry, load_entry
+from pytemplate_hub.schema import (
+    Entry,
+    ProfileCheck,
+    Version,
+    dump_entry,
+    load_entry,
+    tag_problem,
+)
 from pytemplate_hub.verify import (
     Inspected,
     add_version,
@@ -180,6 +188,32 @@ def test_add_refuses_a_manifest_pack_id_that_is_not_allowed(
     with pytest.raises(PackCheckError, match=r"pack id .* is not allowed"):
         add_version(index, REPOSITORY, "v1.0.0", "MIT", fetcher=None)  # type: ignore[arg-type]
     assert not index.exists()
+
+
+@pytest.mark.parametrize("tag", ["v1..0", "v1.0.0.lock", "v1.", "v1.0@{x", "v1..", "a..b.lock"])
+def test_add_refuses_a_tag_git_would_refuse_before_fetching(
+    tag: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    def no_fetch(*_: object, **__: object) -> Inspected:
+        raise AssertionError("a tag git refuses must not be fetched")
+
+    monkeypatch.setattr(verify, "inspect_version", no_fetch)
+    index = tmp_path / "index"
+
+    with pytest.raises(FetchError, match=r"cannot be fetched: .*"):
+        add_version(index, REPOSITORY, tag, "MIT", fetcher=None)  # type: ignore[arg-type]
+    assert not index.exists()
+
+
+@pytest.mark.parametrize("tag", ["v1..0", "v1.0.0.lock", "v1."])
+def test_version_refuses_a_tag_git_would_refuse(tag: str) -> None:
+    with pytest.raises(ValidationError, match="not a valid git tag name"):
+        _version().model_validate({**_version().model_dump(), "tag": tag})
+
+
+def test_tag_rule_accepts_ordinary_tags() -> None:
+    assert tag_problem("v1.0.0") is None
+    assert tag_problem("v1.0.0-rc.1") is None
 
 
 def test_add_refuses_a_non_github_repository(fetcher: GitFetcher, tmp_path: Path) -> None:
