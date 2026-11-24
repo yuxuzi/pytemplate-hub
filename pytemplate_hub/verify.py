@@ -107,10 +107,22 @@ def check_pack(
     except _PACK_ERRORS as error:
         raise PackCheckError(f"The pack failed its checks: {error}") from error
     assert source.pack_id is not None and source.pack_version is not None  # set for every pack
-    manifest = tomllib.loads((root / PACK_MANIFEST).read_text(encoding="utf-8"))
-    return PackCheck(
-        source.pack_id, source.pack_version, manifest["name"], manifest["description"], checks
-    )
+    name, description = _manifest_text(root)
+    return PackCheck(source.pack_id, source.pack_version, name, description, checks)
+
+
+def _manifest_text(root: Path) -> tuple[str, str]:
+    """Return the pack's ``name`` and ``description``, or refuse with the fix to make."""
+    try:
+        manifest = tomllib.loads((root / PACK_MANIFEST).read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as error:
+        raise PackCheckError(f"{PACK_MANIFEST} could not be read: {error}") from error
+    name, description = manifest.get("name"), manifest.get("description")
+    if not isinstance(name, str) or not isinstance(description, str):
+        raise PackCheckError(
+            f"{PACK_MANIFEST} must set `name` and `description` as text strings. Add both keys."
+        )
+    return name, description
 
 
 def _check_profile(root: Path, profile: str, run_lifecycle: bool, runner: Runner) -> ProfileCheck:

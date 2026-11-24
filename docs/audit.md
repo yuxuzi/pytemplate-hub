@@ -91,4 +91,4 @@ Local fixtures only (no network). Probe scripts were run from the scratchpad aga
 - **P2-6** JSON has no schema file (`site.py:120-121`). Fix: B2.
 - **P2-7** Commit in a `title` attribute is unescaped (`site.py:164`). Fix: escape it. Fixed in fix/audit-p1.
 - **P2-8** Yanking is unrestricted (`verify.py:258-275`). Fix: C2.
-- **P2-9** `manifest["name"]` read outside `try` (`verify.py:108-110`; unverified). Fix: wrap it.
+- **P2-9** `manifest["name"]` read outside `try` (`verify.py:108-110`; unverified). Fix: wrap it. Fixed in fix/audit-p1 (pytemplate-uv already rejects a missing or non-text name, so the wrap is a backstop; see the direct tests of `_manifest_text`).

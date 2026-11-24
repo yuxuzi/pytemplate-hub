@@ -119,6 +119,45 @@ def test_invalid_manifest_is_rejected(pack_dir: Path) -> None:
         check_pack(pack_dir)
 
 
+@pytest.mark.parametrize(
+    "manifest",
+    [
+        'contract = 1\nid = "tools"\nversion = "1.0.0"\ndescription = "A pack"\n',
+        'contract = 1\nid = "tools"\nversion = "1.0.0"\nname = "Tools"\n',
+        'contract = 1\nid = "tools"\nversion = "1.0.0"\nname = 7\ndescription = "A pack"\n',
+        'contract = 1\nid = "tools"\nversion = "1.0.0"\nname = "Tools" = bad\n',
+    ],
+    ids=["no-name", "no-description", "name-not-text", "bad-toml"],
+)
+def test_manifest_without_text_name_and_description_is_a_pack_error(
+    pack_dir: Path, manifest: str
+) -> None:
+    (pack_dir / "pytemplate-pack.toml").write_text(manifest, encoding="utf-8")
+
+    with pytest.raises(PackCheckError, match=r"pytemplate-pack\.toml"):
+        check_pack(pack_dir)
+
+
+@pytest.mark.parametrize(
+    "manifest",
+    ['description = "A pack"\n', 'name = "Tools"\n', "name = 7\ndescription = 'x'\n", "name = ["],
+    ids=["missing-name", "missing-description", "not-text", "bad-toml"],
+)
+def test_manifest_text_reader_refuses_a_missing_or_bad_name(tmp_path: Path, manifest: str) -> None:
+    (tmp_path / "pytemplate-pack.toml").write_text(manifest, encoding="utf-8")
+
+    with pytest.raises(PackCheckError, match=r"pytemplate-pack\.toml"):
+        verify._manifest_text(tmp_path)
+
+
+def test_manifest_text_reader_returns_name_and_description(tmp_path: Path) -> None:
+    (tmp_path / "pytemplate-pack.toml").write_text(
+        'name = "T"\ndescription = "D"\n', encoding="utf-8"
+    )
+
+    assert verify._manifest_text(tmp_path) == ("T", "D")
+
+
 def test_missing_license_is_rejected(pack_dir: Path) -> None:
     (pack_dir / "LICENSE").unlink()
 
