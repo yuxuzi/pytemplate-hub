@@ -2,6 +2,8 @@ format = 1
 repository = "https://github.com/yuxuzi/quant-apps"
 name = "Quant-Agent-OS applications"
 description = "One customizable application for each stage of a fund's investment process: alpha research, strategy backtest, risk monitor, and performance report."
+categories = ["quant"]
+keywords = ["alpha", "backtest", "risk", "performance", "report", "factor", "signals", "portfolio"]
 
 [[versions]]
 tag = "v1.0.1"
@@ -47,3 +49,13 @@ pack_version = "2.3.0"
 license = "MIT"
 checked_with = "pytemplate-uv==3.2.0"
 profiles = [{ id = "alpha-research", lifecycle = "passed" }, { id = "performance-report", lifecycle = "passed" }, { id = "risk-monitor", lifecycle = "passed" }, { id = "strategy-backtest", lifecycle = "passed" }]
+
+[[versions]]
+tag = "v2.4.0"
+commit = "45c0f2840e64b375a81ee7cd15c594ba990a027b"
+digest = "cc8c2cdccf499dba33a2d554e0bfc0dec01c77399678be138e62ef454a0bfdac"
+pack_version = "2.4.0"
+license = "MIT"
+checked_with = "pytemplate-uv==3.6.0"
+checked_on = 2026-11-25
+profiles = [{ id = "alpha-research", lifecycle = "passed", name = "Alpha research", description = "From prices to signal evidence: information coefficients, decay, and quantile spreads, around the firm's own signals, and a signal file for the next stage.", kind = "cli", supported_python = ["3.11", "3.12", "3.13", "3.14", "3.15"], dependencies = ["numpy", "quant-toolbox", "typer"], security_posture = "Reads local price files only; no orders, broker connectivity, or credentials in the project." }, { id = "performance-report", lifecycle = "passed", name = "Performance report", description = "From returns to the firm's own tear sheets: returns by horizon, return tables, risk basics, charts, and a reconciliation against reference figures. Choose the sections; add your own.", kind = "cli", supported_python = ["3.11", "3.12", "3.13", "3.14", "3.15"], dependencies = ["numpy", "quant-toolbox", "typer"], security_posture = "Reads local return files only; no orders, broker connectivity, or credentials in the project." }, { id = "risk-monitor", lifecycle = "passed", name = "Risk monitor", description = "From positions to exposures, concentration, return-based value at risk, stress scenarios, and limit checks. Set your limits; add your own checks.", kind = "cli", supported_python = ["3.11", "3.12", "3.13", "3.14", "3.15"], dependencies = ["numpy", "quant-toolbox", "typer"], security_posture = "Reads local position and price files only; no orders, broker connectivity, or credentials in the project." }, { id = "strategy-backtest", lifecycle = "passed", name = "Strategy backtest", description = "From signals or target weights to net returns: lagged trades, drift, rebalancing, costs, delistings, and walk-forward. Bring your own portfolio rule; export returns for the report.", kind = "cli", supported_python = ["3.11", "3.12", "3.13", "3.14", "3.15"], dependencies = ["numpy", "quant-toolbox", "typer"], security_posture = "Reads local price and signal files only; a simulation with no orders, broker connectivity, or credentials in the project." }]

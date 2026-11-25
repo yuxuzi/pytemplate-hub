@@ -2,6 +2,8 @@ format = 1
 repository = "https://github.com/yuxuzi/quant-agent-tool"
 name = "Quant-Agent-OS tool packs"
 description = "Packages of typed tools for the Quant-Agent-OS platform, with contract tests."
+categories = ["ai"]
+keywords = ["mcp", "agent", "tools", "governed", "server", "quant"]
 
 [[versions]]
 tag = "v1.0.0"
@@ -38,3 +40,13 @@ pack_version = "1.0.3"
 license = "MIT"
 checked_with = "pytemplate-uv==3.2.0"
 profiles = [{ id = "agent-tool", lifecycle = "passed" }]
+
+[[versions]]
+tag = "v1.1.0"
+commit = "fa348fa7432cd33671f70b464dd007eaa62708fa"
+digest = "b7c0c55ba3becb90503b45730224348391e21f15ecf8ffcfe62ab49c10e5878c"
+pack_version = "1.1.0"
+license = "MIT"
+checked_with = "pytemplate-uv==3.6.0"
+checked_on = 2026-11-25
+profiles = [{ id = "agent-tool", lifecycle = "passed", name = "Quant-Agent-OS tool package", description = "A typed tool package for Quant-Agent-OS: one example tool, a registry, and contract tests.", kind = "library", supported_python = ["3.11", "3.12", "3.13", "3.14", "3.15"], dependencies = ["pydantic", "quant-agent-os"], security_posture = "The example tool reads only its input. Declare a Permission for anything more; consequential permissions need per-call approval." }]
