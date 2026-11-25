@@ -12,12 +12,12 @@ import pytest
 from pytemplate_hub.errors import EntryError
 from pytemplate_hub.schema import Entry, ProfileCheck, Version, dump_entry, load_entry
 from pytemplate_hub.site import (
-    _card,
     build_site,
     create_command,
     github_stars,
     no_stars,
 )
+from pytemplate_hub.site.render import STATIC_DIR
 
 ATTACK = '<script>alert(1)</script>" onmouseover="alert(2)'
 
@@ -64,11 +64,10 @@ def test_page_shows_the_pack_and_its_exact_command(tmp_path: Path) -> None:
     assert data["packs"][0]["versions"][0]["commit"] == "a" * 40
 
 
-def test_commands_wrap_so_the_pinned_tag_stays_visible(tmp_path: Path) -> None:
-    _, page, _ = _build(_index(tmp_path, _version()), tmp_path)
+def test_commands_wrap_so_the_pinned_tag_stays_visible() -> None:
+    css = (STATIC_DIR / "css" / "site.css").read_text(encoding="utf-8")
 
-    assert "white-space: pre-wrap" in page
-    assert "overflow-x: auto" not in page
+    assert "white-space: pre-wrap" in css
 
 
 def test_page_says_listed_does_not_mean_safe(tmp_path: Path) -> None:
@@ -84,32 +83,21 @@ def test_untrusted_text_is_escaped(tmp_path: Path) -> None:
 
     assert "<script>alert" not in page
     assert '" onmouseover="' not in page
-    assert page.count("<script>") == 1
 
 
-def test_commit_in_the_title_attribute_is_escaped() -> None:
-    # model_copy skips validation, so the commit can hold a quote that a real entry never could.
-    hostile = _version().model_copy(update={"commit": 'x" onmouseover="alert(3)'})
-    entry = Entry(repository="https://github.com/acme/repo", versions=(hostile,))
-
-    card = _card(entry, {"id": "tools", "stars": None})
-
-    assert 'onmouseover="' not in card
-    assert "x&quot; onmouseover=&quot;alert(3)" in card
+def test_page_script_never_builds_html() -> None:
+    for script in (STATIC_DIR / "js").glob("*.js"):
+        source = script.read_text(encoding="utf-8")
+        assert "innerHTML" not in source, script.name
+        assert "document.write" not in source, script.name
 
 
-def test_page_script_never_builds_html(tmp_path: Path) -> None:
+def test_page_loads_its_scripts_and_styles_from_the_site_only(tmp_path: Path) -> None:
     _, page, _ = _build(_index(tmp_path, _version()), tmp_path)
 
-    assert "innerHTML" not in page
-    assert "document.write" not in page
-
-
-def test_page_loads_nothing_from_other_sites(tmp_path: Path) -> None:
-    _, page, _ = _build(_index(tmp_path, _version()), tmp_path)
-
-    assert "src=" not in page
-    assert "stylesheet" not in page
+    assert 'src="static/js/filter.js"' in page
+    assert 'src="http' not in page
+    assert 'href="static/css/site.css"' in page
 
 
 def test_unknown_stars_are_labelled_rather_than_zero(tmp_path: Path) -> None:

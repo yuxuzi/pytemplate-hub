@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero spot" id="spot" aria-roledescription="carousel" aria-label="Spotlight">
+  <div class="wrap">
+    <div class="slide" id="slide-0" data-slide role="tabpanel" aria-roledescription="slide" aria-label="1 of 4: Own your code">
+      <div class="slide-copy">
+        <span class="eyebrow"><span class="dot"></span>uv-native Python templates</span>
+        <h1>Generate once. Own your code.</h1>
+        <p class="lede">Start a Python project from a template pack the hub checked at an exact commit. Each listing gives one command, pinned to the files that passed, and the project is yours from the first commit.</p>
+        <div class="ctas">
+          <a class="btn primary" href="#templates">Browse templates</a>
+          <a class="btn" href="#learn">Start the tutorial</a>
+        </div>
+        <div class="quick">
+          <code><span class="t-p">$</span> uvx pytemplate-uv@latest create my-tool -y</code>
+          <button type="button" data-copy="uvx pytemplate-uv@latest create my-tool -y" data-what="Command"><svg width="14" height="14" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button>
+        </div>
+      </div>
+      <div class="stage with-seal">
+        <div class="term" role="img" aria-label="Terminal: creating a FastAPI service from the hub's pinned command">
+          <div class="term-bar"><i></i><i></i><i></i><span>~/code</span></div>
+<pre><span class="t-p">$</span> uvx pytemplate-uv@latest create my-api -p service \
+    --template gh:yuxuzi/fastapi-service --template-ref v1.0.0 \
+    --template-commit 162d0b5c08c4574d47109f04cfe525d50e892c59 \
+    --template-digest 5c129b562f6cf7445be534221c04e2fecb64e0f9bfc6c1a85fcd85d3d15a75cd -y
+<span class="t-ok">Created</span> 'service' project at my-api
+<span class="t-d"># then the next steps: cd, and the profile's checks</span>
+<span class="t-p">$</span> cd my-api &amp;&amp; uv run ruff check .
+<span class="t-p">$</span> <span class="cursor"></span></pre>
+        </div>
+        <div class="seal ok">
+          <span class="label">Pinned to the hub's check</span>
+          <div class="seal-row"><span class="label">tag</span><span><span class="pin">v1.0.0</span></span></div>
+          <div class="seal-row"><span class="label">commit</span><code>162d0b5c08c4574d47109f04cfe525d50e892c59</code></div>
+          <div class="seal-row"><span class="label">digest</span><code>5c129b562f6cf7445be534221c04e2fecb64e0f9bfc6c1a85fcd85d3d15a75cd</code></div>
+          <div class="verdict"><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg><span>Matches the files the hub checked</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide" id="slide-1" data-slide role="tabpanel" aria-roledescription="slide" aria-label="2 of 4: New in 3.3" hidden>
+      <div class="slide-copy">
+        <span class="eyebrow"><span class="dot"></span>Release · pytemplate-uv 3.3.0</span>
+        <h2 class="h1">Your coding agent finds packs on the hub.</h2>
+        <p class="lede">The <code>pytemplate</code> skill now looks on the hub when no bundled profile fits, shows each candidate's trust tier, waits for your choice, and pins the request to the listed commit and digest.</p>
+        <div class="ctas">
+          <a class="btn primary" href="#posts">Read the release post (Draft)</a>
+          <a class="btn" href="https://pypi.org/project/pytemplate-uv/" rel="noopener">pytemplate-uv on PyPI</a>
+        </div>
+      </div>
+      <div class="stage">
+        <div class="release">
+          <div class="release-head"><b>pytemplate-uv</b><span class="pin">v3.3.0</span><span class="label">24 Nov 2026</span></div>
+          <div class="term"><pre><span class="t-p">$</span> pytemplate skill install --force
+<span class="t-p">$</span> uvx pytemplate-uv@latest list-profiles \
+    --template gh:yuxuzi/pytemplate-starters --template-ref v1.0.0</pre></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide" id="slide-2" data-slide role="tabpanel" aria-roledescription="slide" aria-label="3 of 4: Starter packs" hidden>
+      <div class="slide-copy">
+        <span class="eyebrow"><span class="dot"></span>New packs · from the maintainer</span>
+        <h2 class="h1">Starting points, each checked.</h2>
+        <p class="lede">Five starter packs: scripts, CLIs, and libraries; FastAPI services; MCP servers; data pipelines; and background workers. Every profile passed <code>uv sync</code>, ruff, mypy, and pytest at its listed commit.</p>
+        <div class="ctas">
+          <a class="btn primary" href="#templates">See all templates</a>
+        </div>
+      </div>
+      <div class="stage">
+        <div class="mini">
+          {% for pack in starter_packs %}
+          <a href="#templates">
+            <b>{{ pack.name }}</b>
+            <span class="pin">{{ pack.tag }}</span>
+            <span class="muted">{{ pack.description }}</span>
+            <div class="chips">{% for command in pack.commands %}<span class="chip">{{ command.profile }}</span>{% endfor %}</div>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="slide" id="slide-3" data-slide role="tabpanel" aria-roledescription="slide" aria-label="4 of 4: Quant-Agent-OS" hidden>
+      <div class="slide-copy">
+        <span class="eyebrow"><span class="dot"></span>Adoption · Quant-Agent-OS</span>
+        <h2 class="h1">A fund's whole workflow, as packs.</h2>
+        <p class="lede">Quant-Agent-OS, the maintainer's own platform, publishes its application templates on the hub: one application for each stage of a fund's work, pinned and checked like any other pack.</p>
+        <div class="ctas">
+          <a class="btn primary" href="#templates">See the quant packs</a>
+        </div>
+      </div>
+      <div class="stage">
+        <div class="flow">
+          <div class="flow-step"><span class="n">1</span><div><b>Alpha research</b> <code>alpha-research</code><p>From prices to signal evidence: information coefficients, decay, and quantile spreads.</p></div></div>
+          <div class="flow-step"><span class="n">2</span><div><b>Strategy backtest</b> <code>strategy-backtest</code><p>From signals or target weights to net returns: lagged trades, costs, delistings, walk-forward.</p></div></div>
+          <div class="flow-step"><span class="n">3</span><div><b>Risk monitor</b> <code>risk-monitor</code><p>From positions to exposures, value at risk, stress scenarios, and limit checks.</p></div></div>
+          <div class="flow-step"><span class="n">4</span><div><b>Performance report</b> <code>performance-report</code><p>From returns to the firm's own tear sheets, with a reconciliation against reference figures.</p></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="spot-nav">
+      <div class="spot-tabs" role="tablist" aria-label="Spotlight slides">
+        <button class="spot-tab" role="tab" type="button" id="tab-0" data-tab aria-controls="slide-0" aria-selected="true"><span class="bar"></span><small>01</small>Own your code</button>
+        <button class="spot-tab" role="tab" type="button" id="tab-1" data-tab aria-controls="slide-1" aria-selected="false" tabindex="-1"><span class="bar"></span><small>02</small>New in 3.3</button>
+        <button class="spot-tab" role="tab" type="button" id="tab-2" data-tab aria-controls="slide-2" aria-selected="false" tabindex="-1"><span class="bar"></span><small>03</small>Starter packs</button>
+        <button class="spot-tab" role="tab" type="button" id="tab-3" data-tab aria-controls="slide-3" aria-selected="false" tabindex="-1"><span class="bar"></span><small>04</small>Quant-Agent-OS</button>
+      </div>
+      <button class="icon-btn" id="spot-pause" type="button" aria-pressed="false" aria-label="Pause the spotlight">
+        <svg class="icon-pause" width="16" height="16" aria-hidden="true"><use href="#i-pause"/></svg>
+        <svg class="icon-play" width="16" height="16" aria-hidden="true" hidden><use href="#i-play"/></svg>
+      </button>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="templates"><div class="wrap">
+  <div class="sec-head"><div><h2>What do you want to build?</h2><p>Each pack declares its categories in its own file. Counts are the listed packs in each category.</p></div><a href="#templates">All templates</a></div>
+  <div class="tiles">
+    {% for category in categories %}
+    <a class="tile" href="#templates" data-category="{{ category.id }}"><span class="glyph">{{ category.glyph }}</span><b>{{ category.label }}</b><span class="ex">{{ category.example }}</span><span class="count">{{ category.count }} listed</span></a>
+    {% endfor %}
+    <a class="tile ghost" href="#publish"><span class="glyph">+</span><b>Not here yet?</b><span class="ex">Request a template, or publish the one your team already uses.</span></a>
+  </div>
+  <div class="controls">
+    <input id="search" type="search" placeholder="Search packs" aria-label="Search packs">
+    <label><input id="reviewed" type="checkbox"> Reviewed only</label>
+    <span id="count" class="note" role="status">Showing {{ cards|length }} of {{ cards|length }}</span>
+  </div>
+  <p class="note">Details as of {{ built_on }}. Each command pins the tag, commit, and digest the hub checked.</p>
+  <div class="packs">
+    {% for card in cards %}
+    <article class="pack" data-search="{{ card.search }}" data-tier="{{ card.tier }}">
+      <div class="head"><h3>{{ card.name }}</h3><span class="tier {{ card.tier }}">{{ card.tier_label }}</span></div>
+      <p class="id">{{ card.identifier }}</p>
+      <p class="description">{{ card.description }}</p>
+      <p class="facts" title="{{ card.commit }}">{{ card.facts }}</p>
+      {% for command in card.commands %}
+      <pre><code>{{ command.text }}</code></pre><button type="button" data-copy="{{ command.text }}" data-what="Command">Copy the {{ command.profile }} command</button>
+      {% endfor %}
+      <p class="links"><a href="{{ card.repository }}" rel="noopener nofollow">Source</a> · <a href="{{ card.repository }}/issues" rel="noopener nofollow">Comments and issues</a></p>
+    </article>
+    {% else %}
+    <p>No packs are listed yet.</p>
+    {% endfor %}
+  </div>
+</div></section>
+
+<section class="section" id="learn"><div class="wrap">
+  <div class="sec-head"><div><h2>How a pin works</h2><p>The hub stores references, not files. Each listed version binds a tag to the exact commit and file contents that passed.</p></div><a href="#learn">What the checks mean</a></div>
+  <div class="steps">
+    <div class="step"><span class="n">1</span><b>An author tags a release</b><p>The pack stays in the author's own GitHub repository, at a tag such as <code>v1.0.0</code>.</p></div>
+    <div class="step"><span class="n">2</span><b>The hub checks it</b><p>Rendering with Copier's <code>unsafe=False</code>, then each profile's commands: <code>uv sync</code>, ruff, mypy, pytest.</p></div>
+    <div class="step"><span class="n">3</span><b>The listing records the pin</b><p>Tag, 40-character commit, and a SHA-256 digest over every file's path and bytes.</p></div>
+    <div class="step"><span class="n">4</span><b>You copy one command</b><p>pytemplate-uv refuses the pack if the tag moved or any file changed, and writes nothing.</p></div>
+  </div>
+  <div class="refusal">
+    <div class="term"><div class="term-bar"><i></i><i></i><i></i><span>what a refusal looks like</span></div><pre>Error: Template pack 'gh:yuxuzi/pytemplate-starters' at v1.0.0 has digest 9257…, not the pinned digest. Nothing was written.</pre></div>
+  </div>
+</div></section>
+
+<section class="section" id="posts"><div class="wrap">
+  <div class="sec-head"><div><h2>Latest posts</h2><p>Placeholders. The posts are drafts until the Posts phase (P3) builds them from Markdown.</p></div><a href="#posts">All posts</a></div>
+  <div class="posts-row">
+    {% for post in posts %}
+    <a class="pcard" href="#posts"><span class="label">{{ post.kind }} · <span class="badge">Draft</span></span><h3>{{ post.title }}</h3><p>{{ post.summary }}</p></a>
+    {% endfor %}
+  </div>
+</div></section>
+
+<section class="section"><div class="wrap">
+  <div class="sec-head"><div><h2>What the labels mean</h2><p><strong>Listed does not mean safe.</strong> A generated project's dependencies, build backend, and tests run code when you use them, so read a pack first.</p></div></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Label</th><th>Means</th><th>Does not mean</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge">Listed</span></td><td>The pack passed the automated checks at this commit</td><td>Safe, reviewed, or endorsed</td></tr>
+      <tr><td><span class="badge reviewed">Reviewed</span></td><td>The named maintainer reviewed this exact commit</td><td>Safe or free of bugs</td></tr>
+      <tr><td><code>lifecycle passed</code></td><td>The commands passed with default answers, at the time of the check</td><td>Other answers or components work</td></tr>
+      <tr><td><code>license</code></td><td>The submitter's declaration, and a license file exists</td><td>The hub checked the license text</td></tr>
+      <tr><td><span class="badge maint">Maintainer</span></td><td>Published by the hub's own maintainer</td><td>Ranked higher: it gets no boost</td></tr>
+    </tbody>
+  </table></div>
+</div></section>
+
+<section class="band" id="publish"><div class="wrap">
+  <div>
+    <h2>Your team starts the same project every month. Make it a pack.</h2>
+    <p>A pack is a folder of profiles in your own repository. List it on the hub with one pull request, and everyone gets a pinned command.</p>
+    <div class="ctas"><a class="btn primary" href="#publish">Publish a pack</a><a class="btn" href="#learn">Read the author guide</a></div>
+  </div>
+  <ol>
+    <li><span>Tag a release in your pack's repository: <code>git tag v1.0.0</code></span></li>
+    <li><span>Add it to the index: <code>uv run pytemplate_hub add https://github.com/&lt;you&gt;/&lt;pack&gt; --tag v1.0.0 --license MIT</code></span></li>
+    <li><span>Open the pull request. CI checks the pack, a maintainer merges, and it appears here.</span></li>
+  </ol>
+</div></section>
+{% endblock %}
