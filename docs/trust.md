@@ -67,7 +67,7 @@ day they ran.
 
 ## Limits
 
-- Star counts are only as fresh as the last build, and nothing rebuilds the site automatically yet.
+- Star counts are only as fresh as the last build. The Pages workflow rebuilds on each push to `main`, not on a schedule.
 - A pack's generated projects may install dependencies from moving sources, so a passing lifecycle
   result describes those sources as they were at check time.
 - The site's commands pass the listed commit and digest, so pytemplate-uv 3.1 or later refuses a pack

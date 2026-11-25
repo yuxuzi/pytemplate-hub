@@ -83,15 +83,18 @@ Contributors to the hub's code should read [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## The site
 
-`site` writes one page with search and a reviewed-only filter, the same data as `index.json`, and
-`index.schema.json`, a JSON Schema that describes `index.json`. Star counts
-come from GitHub at build time, and comments link to the source repository's issues, so the hub has
-no accounts. `--no-stars` builds without network access. Yanked versions stay in the JSON and leave the
-page.
+`site` writes `index.html`, the page with search, a reviewed-only filter, and each profile's pinned
+command; `index.json`, the same data; `index.schema.json`, a JSON Schema for `index.json`; and the
+page's `static/` files. The page is rendered with Jinja2 from the index, so the hub has no
+separate data snapshot. Star counts come from GitHub at build time, and comments link to the
+source repository's issues, so the hub has no accounts. `--no-stars` builds without network access.
+Yanked versions stay in the JSON and leave the page. Each push to `main` publishes the site through
+`.github/workflows/pages.yml`, which runs no pack code. The website's
+plan and design are in [docs/site](docs/site/plan.md).
 
 ## Limits
 
-- Star counts are only as fresh as the last build, and nothing rebuilds the site automatically yet.
+- Star counts are only as fresh as the last build. The Pages workflow rebuilds on each push to `main`, not on a schedule.
 - A pack's generated projects may install dependencies from moving sources, so a passing lifecycle
   result describes those sources as they were at check time.
 - The site's commands pass the listed commit and digest, so pytemplate-uv 3.1 or later refuses a pack
