@@ -51,9 +51,14 @@ use it only on an isolated machine with no credentials.
 | `lifecycle = "passed"` | The commands passed with default answers, at the time of the check | Other answers or components work |
 | `license` | The submitter's declaration, and a license file exists | The hub checked the license text |
 
-Rendering runs with Copier's `unsafe=False`, and `_tasks`, `_migrations`, `_jinja_extensions`, and
-symlinks are rejected. That only protects rendering: **a generated project's dependencies, build
-backend, and tests still run code when you use them.** Read a pack before you run what it generates.
+Details: [docs/trust.md](docs/trust.md), including what rendering and lifecycle commands do. **A
+generated project's dependencies, build backend, and tests still run code when you use them.**
+
+## Listing a pack
+
+Read [docs/authors.md](docs/authors.md). It covers the pack requirements, tagging a release, adding
+your entry with `pytemplate_hub add`, opening the pull request, and what the CI checks report.
+Contributors to the hub's code should read [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## The site
 
