@@ -7,6 +7,7 @@ import pytest
 ROOT = Path(__file__).parent.parent
 FILES = [*sorted((ROOT / "pytemplate_hub").glob("*.py")), ROOT / "pyproject.toml"]
 FILES += [ROOT / "README.md", ROOT / "CLAUDE.md"]
+FILES += sorted((ROOT / "pytemplate_hub" / "site" / "learn").glob("*.md"))
 # Assembled so this file does not name them either.
 PUBLISHERS = (
     "quant" + "-agent",

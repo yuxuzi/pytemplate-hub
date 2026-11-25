@@ -62,6 +62,27 @@ def test_disallowed_protocol_is_refused(source: Path, tmp_path: Path) -> None:
         https_only.fetch(REPOSITORY, "v1.0.0", tmp_path / "out")
 
 
+# A shared test vector: pytemplate-uv's tests/test_packs.py checks `pack_digest` against the same
+# files and the same value, so a digest the hub records is one pytemplate-uv accepts. Change both
+# together, or neither: the digest format is part of pytemplate-uv's compatibility promise.
+DIGEST_VECTOR_FILES = {
+    "B.txt": b"upper\n",
+    "a.txt": b"lower\n",
+    "dir/x": b"\x00\xff",
+    "dir/sub/y.txt": b"",
+    "dir-y/z": b"z\n",
+}
+DIGEST_VECTOR = "fd6a0842ebb196f5b593281ec33403e9747a65fef2f70bb15246d556e8775bec"
+
+
+def test_digest_matches_the_vector_shared_with_pytemplate_uv(tmp_path: Path) -> None:
+    for name, data in DIGEST_VECTOR_FILES.items():
+        (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / name).write_bytes(data)
+
+    assert directory_digest(tmp_path) == DIGEST_VECTOR
+
+
 def test_digest_changes_with_contents_and_with_names(tmp_path: Path) -> None:
     (tmp_path / "a.txt").write_text("one", encoding="utf-8")
     first = directory_digest(tmp_path)

@@ -7,7 +7,7 @@
 > replaces them), and the W1-W7 work steps that name a separate repository. The design, the site
 > map, the search and ranking rules, and the posts plan still apply.
 
-Status: the site is built in the hub (`uv run pytemplate_hub site`), and `.github/workflows/pages.yml` publishes it. The Posts and Learn pages are future phases; the rest of this plan is the design. The design is
+Status: the site is built in the hub (`uv run pytemplate_hub site`), and `.github/workflows/pages.yml` publishes it. The Learn pages are built (decision W3: the website owns the tutorial and the guides, for both projects, from `pytemplate_hub/site/learn/`; the repositories keep only READMEs that link to them). Posts are a future phase; the rest of this plan is the design. The design is
 in [`design/prototype.html`](design/prototype.html), a clickable prototype that uses the hub's
 real listings (also as a private page: <https://claude.ai/artifact/T3SLTtrLqG3pvYQLqbkAnb>).
 
@@ -35,7 +35,8 @@ minute?"), team leads who want one standard project layout, and pack authors.
   (`pytemplate-starters`, `fastapi-service`, `mcp-server`, `data-pipeline`, `background-worker`)
   and 3 Quant-Agent-OS packs (`quant-apps`, `quant-baseline`, `quant-agent-tool`). None are
   reviewed yet, and all have 0 stars.
-- `docs/tutorial.md`, `docs/authors.md`, and `docs/trust.md` in the hub, and pytemplate-uv's
+- The Learn pages (`pytemplate_hub/site/learn/`: tutorial, guide, packs, publish, trust,
+  compatibility), and pytemplate-uv's
   CHANGELOG (3.1 pins, 3.2 `-y`, 3.3 hub search) are the source material for Learn and Posts.
 - The hub's release plan already decides some of this: categories come from the pack (D1), and a
   Pages deploy runs no pack code (D3). Copy leads with "Generate once. Own your code." and makes no

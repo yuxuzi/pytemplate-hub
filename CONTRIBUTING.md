@@ -2,7 +2,8 @@
 
 ## Listing a pack
 
-If you want to list a pack, read [docs/authors.md](docs/authors.md). Make index entries with
+If you want to list a pack, read [Publish a pack](https://yuxuzi.github.io/pytemplate-hub/publish/).
+Make index entries with
 `pytemplate_hub add`. Do not edit an entry by hand, except to add a `yanked` reason.
 
 ## Changing the hub
@@ -32,4 +33,7 @@ If you want to list a pack, read [docs/authors.md](docs/authors.md). Make index 
   Do not edit `uv.lock` by hand.
 - Keep the hub generic. Its code and documents must not name a publisher or a consumer.
   `tests/test_independence.py` checks this for some files.
-- Read [docs/trust.md](docs/trust.md) before you change how a check works.
+- Read [What the checks mean](https://yuxuzi.github.io/pytemplate-hub/learn/trust/) before you change
+  how a check works, and update that page with the change.
+- User documentation lives on the website only. Edit its pages in `pytemplate_hub/site/learn/`, and
+  do not add guides to `docs/`, which holds maintainer documents.

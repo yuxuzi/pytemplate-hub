@@ -1,9 +1,10 @@
-"""Render the hub's home page with Jinja2, from the packs the index lists.
+"""Render the hub's pages with Jinja2: the home page from the index, and the Learn pages.
 
 Every value from an entry is untrusted text. It reaches the page only through Jinja2 with
 autoescaping on, and no template uses the ``safe`` filter on entry data. The page's scripts only
 show and hide what the page already holds; they never build HTML from strings. The page names no
-pack, publisher, or consumer: every pack on it comes from the index.
+pack, publisher, or consumer: every pack on it comes from the index. The Learn pages hold only the
+hub's own Markdown, rendered by ``learn`` with raw HTML turned off.
 """
 
 from __future__ import annotations
@@ -16,6 +17,8 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from pytemplate_hub.site.learn import LEARN_PATH, PAGES, PAGES_BY_SLUG, Page, render_page, root_of
+
 PACKAGE_DIR = Path(__file__).resolve().parent
 TEMPLATE_DIR = PACKAGE_DIR / "templates"
 STATIC_DIR = PACKAGE_DIR / "static"
@@ -23,15 +26,21 @@ NEWEST_COUNT = 5
 HUB_URL = "https://github.com/yuxuzi/pytemplate-hub"
 UV_URL = "https://github.com/yuxuzi/pytemplate-uv"
 LINKS: dict[str, str] = {
-    "tutorial": f"{HUB_URL}/blob/main/docs/tutorial.md",
-    "authors": f"{HUB_URL}/blob/main/docs/authors.md",
-    "trust": f"{HUB_URL}/blob/main/docs/trust.md",
     "contributing": f"{HUB_URL}/blob/main/CONTRIBUTING.md",
     "hub": HUB_URL,
     "whats_new": f"{UV_URL}/blob/main/CHANGELOG.md",
     "pytemplate_uv": UV_URL,
     "pytemplate_uv_issues": f"{UV_URL}/issues",
     "pypi": "https://pypi.org/project/pytemplate-uv/",
+}
+# Pages of this site, relative to its root; ``links`` prefixes them for the page that links.
+SITE_LINKS: dict[str, str] = {
+    "home": "index.html",
+    "templates": "index.html#templates",
+    "learn": f"{LEARN_PATH}index.html",
+    "tutorial": f"{PAGES_BY_SLUG['tutorial'].path}index.html",
+    "authors": f"{PAGES_BY_SLUG['publish'].path}index.html",
+    "trust": f"{PAGES_BY_SLUG['trust'].path}index.html",
 }
 
 # The category tiles. Each id is a key of the hub's fixed vocabulary (categories.toml); a tile's
@@ -101,6 +110,11 @@ def newest(cards: Sequence[Card]) -> list[Card]:
     return ordered[:NEWEST_COUNT]
 
 
+def links(root: str) -> dict[str, str]:
+    """Return every link a page uses, with this site's pages relative to ``root``."""
+    return {**LINKS, **{key: root + target for key, target in SITE_LINKS.items()}}
+
+
 def render_index(cards: Sequence[Card], built_on: str) -> str:
     """Render the home page for the listed packs."""
     tiles: list[dict[str, Any]] = [
@@ -112,16 +126,69 @@ def render_index(cards: Sequence[Card], built_on: str) -> str:
         cards=list(cards),
         featured=cards[0] if cards else None,
         newest_packs=newest(cards),
-        links=LINKS,
+        links=links(""),
+        root="",
+        current="home",
         built_on=built_on,
     )
 
 
+def _pages(root: str) -> list[dict[str, str]]:
+    return [
+        {
+            "title": page.title,
+            "summary": page.summary,
+            "href": f"{root}{page.path}index.html",
+            "slug": page.slug,
+        }
+        for page in PAGES
+    ]
+
+
+def render_learn_page(page: Page, built_on: str) -> str:
+    """Render one Learn page, with the list of all pages and its own table of contents."""
+    root = root_of(page.path)
+    rendered = render_page(page)
+    template = _environment().get_template("learn.html")
+    return template.render(
+        page=page,
+        body=rendered.html,
+        headings=rendered.headings,
+        pages=_pages(root),
+        links=links(root),
+        root=root,
+        current="publish" if page.slug == "publish" else "learn",
+        built_on=built_on,
+    )
+
+
+def render_learn_index(built_on: str) -> str:
+    """Render the Learn page that lists the tutorial and the guides."""
+    root = root_of(LEARN_PATH)
+    template = _environment().get_template("learn_index.html")
+    return template.render(
+        pages=_pages(root),
+        links=links(root),
+        root=root,
+        current="learn",
+        built_on=built_on,
+    )
+
+
+def _write(output: Path, path: str, html: str) -> None:
+    target = output / path / "index.html"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(html, encoding="utf-8")
+
+
 def write_site(cards: Sequence[Card], built_on: str, output: Path) -> Path:
-    """Write ``index.html`` and copy the static files into ``output``; return ``index.html``."""
+    """Write the home page, the Learn pages, and the static files; return ``index.html``."""
     output.mkdir(parents=True, exist_ok=True)
     index = output / "index.html"
     index.write_text(render_index(cards, built_on), encoding="utf-8")
+    _write(output, LEARN_PATH, render_learn_index(built_on))
+    for page in PAGES:
+        _write(output, page.path, render_learn_page(page, built_on))
     target = output / "static"
     if target.exists():
         shutil.rmtree(target)

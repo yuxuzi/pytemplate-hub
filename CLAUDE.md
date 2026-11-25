@@ -21,7 +21,8 @@ A static, verified index of pytemplate-uv template packs. A typed Python 3.11+ p
 - `pytemplate_hub/schema.py` — the index entry format.
 - `pytemplate_hub/fetch.py` — fetching a tag; the commit and digest. Uses git only.
 - `pytemplate_hub/verify.py` — listing checks, re-verification, and protected-field checks.
-- `pytemplate_hub/site/` — the static site: `data.py` (JSON, schema, stars, create command), `render.py` (Jinja2 page), `templates/` and `static/` (shipped in the wheel). Entry text is untrusted: autoescape it, never `|safe`, and never build HTML in the page's script.
+- `pytemplate_hub/site/` — the static site: `data.py` (JSON, schema, stars, create command), `render.py` (Jinja2 pages), `learn.py` (Learn pages from Markdown), `learn/` (the Markdown: the tutorial and the guides), `templates/` and `static/` (shipped in the wheel). Entry text is untrusted: autoescape it, never `|safe`, and never build HTML in the page's script. Learn pages hold only the hub's own Markdown, rendered with raw HTML off.
+- `docs/` — maintainer documents only: the launch plan, the audit, and the website's plan and design.
 - `pytemplate_hub/cli.py` — Typer entry point; a thin layer over `verify` and `site`.
 - `examples/sample-pack/` — a trusted pack used by the tests.
 - `index/` — the entries, one per pack.
@@ -31,6 +32,11 @@ A static, verified index of pytemplate-uv template packs. A typed Python 3.11+ p
 
 - Import pytemplate-uv only through `pytemplate.api`.
 - The hub stores references, never template files, and has no accounts or server.
+- User documentation lives on the website only, in `pytemplate_hub/site/learn/`, for both the hub and
+  pytemplate-uv. Each repository keeps a README that links to the pages by their full URL. Never add
+  a user guide to `docs/` or to pytemplate-uv; when a pytemplate-uv change is user-visible, update
+  its page here. In commands, name a listed pack with `-h owner/pack@tag`, and keep the fully pinned
+  form for CI and offline use.
 - Never add self-declared quality fields. Quality signals are computed, or name a reviewer.
 - `.github/workflows/verify-index.yml` runs untrusted code: never give it secrets or write access.
 - The hub is generic and independent, like pytemplate-uv. It never imports, depends on, or names a
