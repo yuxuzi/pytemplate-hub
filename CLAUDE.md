@@ -21,7 +21,7 @@ A static, verified index of pytemplate-uv template packs. A typed Python 3.11+ p
 - `pytemplate_hub/schema.py` — the index entry format.
 - `pytemplate_hub/fetch.py` — fetching a tag; the commit and digest. Uses git only.
 - `pytemplate_hub/verify.py` — listing checks, re-verification, and protected-field checks.
-- `pytemplate_hub/site.py` — the static site. Entry text is untrusted: escape it, and never build HTML in the page's script.
+- `pytemplate_hub/site/` — the static site: `data.py` (JSON, schema, stars, create command), `render.py` (Jinja2 page), `templates/` and `static/` (shipped in the wheel). Entry text is untrusted: autoescape it, never `|safe`, and never build HTML in the page's script.
 - `pytemplate_hub/cli.py` — Typer entry point; a thin layer over `verify` and `site`.
 - `examples/sample-pack/` — a trusted pack used by the tests.
 - `index/` — the entries, one per pack.

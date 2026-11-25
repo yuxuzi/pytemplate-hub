@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#13201a"/>
+  <path d="M6 50C20 57 38 55 49 46C57 39 58 22 49 16C44 13 39 15 37 18" fill="none" stroke="#e8a317" stroke-width="5" stroke-linecap="round"/>
+  <text x="8" y="38" font-family="Martian Mono, ui-monospace, monospace" font-weight="700" font-size="25" letter-spacing="-2" fill="#e3ebe6">py</text>
+  <ellipse cx="35" cy="20" rx="5.2" ry="3.8" transform="rotate(-35 35 20)" fill="#e8a317"/>
+  <circle cx="33.6" cy="18.3" r="1" fill="#13201a"/>
+</svg>

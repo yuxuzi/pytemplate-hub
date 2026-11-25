@@ -16,6 +16,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
+    "jinja2>=3.1",
     "pydantic>=2.7",
     "pytemplate-uv>=3.1,<4",
     "rich>=13.7",
