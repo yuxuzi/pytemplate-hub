@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Templates · Pytemplate Hub{% endblock %}
+{% block description %}Every template pack listed on the hub, with search, filters, and a command pinned to the files the hub checked.{% endblock %}
+{% block scripts %}
+<script type="module" src="{{ root }}static/js/catalog.js"></script>
+{% endblock %}
+{% block content %}
+<div class="page-head"><div class="wrap">
+  <h1>Templates</h1>
+  <p>{{ cards|length }} packs and {{ profile_count }} profiles. Every listing is pinned to the commit and digest the hub checked. <strong>Listed does not mean safe</strong>: read a pack before you run what it generates.</p>
+</div></div>
+<div class="wrap cat">
+  <aside class="facets" id="facets" aria-label="Filters">
+    {% for facet in facets %}
+    <div class="fgroup">
+      <h3 class="label">{{ facet.title }}</h3>
+      {% for option in facet.options %}
+      <label class="fopt"><input type="checkbox" data-facet="{{ facet.key }}" value="{{ option.value }}"><span>{{ option.label }}</span><span class="n" data-count>{{ option.count }}</span></label>
+      {% endfor %}
+    </div>
+    {% endfor %}
+    <div class="fgroup">
+      <h3 class="label">Trust</h3>
+      <label class="fopt"><input type="checkbox" id="f-reviewed"><span>Reviewed only</span><span class="n" id="n-reviewed">{{ reviewed }}</span></label>
+    </div>
+    {% if python %}
+    <div class="fgroup">
+      <h3 class="label"><label for="f-python">Python</label></h3>
+      <select id="f-python">
+        <option value="">Any version</option>
+        {% for version in python %}
+        <option value="{{ version }}">Python {{ version }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    <button class="clear" type="button" id="clear" hidden>Clear all filters</button>
+  </aside>
+
+  <div class="results">
+    <form class="toolbar" role="search" action="index.html" method="get">
+      <div class="search">
+        <svg width="16" height="16" aria-hidden="true"><use href="#i-search"/></svg>
+        <input id="q" name="q" type="search" placeholder="Search: rest api, etl, agent tools, backtest…" aria-label="Search templates" autocomplete="off">
+      </div>
+      <label class="sr" for="sort">Sort by</label>
+      <select id="sort" name="sort">
+        <option value="recommended">Recommended</option>
+        <option value="stars">Most stars</option>
+        <option value="recent">Recently checked</option>
+        <option value="name">Name</option>
+      </select>
+      <button class="btn filter-toggle" id="filter-toggle" type="button" aria-expanded="false" aria-controls="facets">Filters</button>
+    </form>
+    <div class="hints"><span>Try</span>{% for hint in hints %}<button class="hint" type="button" data-hint="{{ hint }}">{{ hint }}</button>{% endfor %}</div>
+    <div class="status"><span id="count" role="status">{{ cards|length }} of {{ cards|length }} packs · {{ profile_count }} profiles</span><span id="expand"></span></div>
+    <details class="rank">
+      <summary>How ranking works</summary>
+      <div class="body">
+        <p>Recommended combines three things the index can show. Nobody can pay for rank, and no publisher's packs get a boost.</p>
+<pre>recommended = 0.4 × trust + 0.3 × freshness + 0.3 × popularity
+  trust      = 1.0 reviewed · 0.6 listed, every profile passed · 0.3 otherwise
+  freshness  = 1.0 if checked in the last 30 days, falling to 0 at 365 days
+  popularity = min(1, log10(1 + stars) ÷ 3)        1,000 stars = 1.0
+with a search: relevance ÷ best relevance × (0.7 + 0.3 × recommended)
+ties: name</pre>
+        <p>Search matches names first, then categories, keywords, stack, and profiles, then descriptions. It accepts the start of a word and one typo in words of five letters or more, and expands a few common words, such as <code>rest</code> to web and FastAPI.</p>
+      </div>
+    </details>
+
+    <div class="list" id="list">
+      {% for card in cards %}
+      <article class="row" data-pack data-name="{{ card.search_name }}" data-id="{{ card.search_id }}" data-tags="{{ card.search_tags }}" data-text="{{ card.search_text }}" data-category="{{ card.categories|join(' ') }}" data-kind="{{ card.kinds|join(' ') }}" data-stack="{{ card.stack|join('|') }}" data-license="{{ card.license }}" data-python="{{ card.python|join(' ') }}" data-tier="{{ card.tier }}" data-stars="{{ card.stars or 0 }}" data-checked="{{ card.checked_on or '' }}" data-rec="{{ card.recommended }}" data-title="{{ card.name|lower }}">
+        <div class="row-main">
+          <div class="row-head">
+            <a class="row-title" href="{{ card.owner }}/{{ card.pack_id }}/index.html">{{ card.name }}</a>
+            {% if card.tier == "reviewed" %}<span class="badge reviewed">Reviewed</span>{% else %}<span class="badge">Listed</span>{% endif %}
+          </div>
+          <div class="row-id">{{ card.identifier }}{% if card.categories %} · {{ card.category_labels|join(', ') }}{% endif %}</div>
+          <p class="row-desc">{{ card.description }}</p>
+          <div class="chips" aria-label="Profiles">
+            {% for profile in card.profiles %}
+            <a class="chip" href="{{ card.owner }}/{{ card.pack_id }}/index.html?profile={{ profile.id }}" title="{{ profile.name }}" data-profile="{{ profile.id }}" data-words="{{ (profile.id ~ ' ' ~ profile.name ~ ' ' ~ (profile.kind or '') ~ ' ' ~ profile.stack|join(' ') ~ ' ' ~ profile.description)|lower }}" data-command="{{ profile.command.text }}">{{ profile.id }}</a>
+            {% endfor %}
+          </div>
+          {% if card.stack %}<div class="stackline">Stack: {{ card.stack|join(' · ') }}</div>{% endif %}
+        </div>
+        <div class="row-side">
+          <div><span class="pin">{{ card.tag }}</span></div>
+          <dl class="facts">
+            <dt>commit</dt><dd>{{ card.commit[:12] }}</dd>
+            <dt>stars</dt><dd>{{ card.stars if card.stars is not none else "unavailable" }}</dd>
+            <dt>license</dt><dd>{{ card.license }}</dd>
+            <dt>checked</dt><dd>{{ card.checked_on or "not recorded" }}, {{ card.checked_with }}</dd>
+          </dl>
+          {% set first = card.profiles[0] %}
+          <div class="side-actions">
+            <button class="btn small primary" type="button" data-copy="{{ first.command.text }}" data-what="Command" data-row-copy><svg width="14" height="14" aria-hidden="true"><use href="#i-copy"/></svg><span data-row-copy-label>Copy {{ first.id }}</span></button>
+            <a href="{{ card.owner }}/{{ card.pack_id }}/index.html">Details →</a>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    <div class="empty" id="empty"{% if cards %} hidden{% endif %}>
+      <b>{% if cards %}No template matches{% else %}No packs are listed yet.{% endif %}</b>
+      <p>Try fewer words or another filter. If nobody has made it yet, ask for it: requests become the list of packs the hub wants.</p>
+      <div class="ctas"><button class="btn small" type="button" id="reset">Clear search and filters</button><a class="btn small" href="{{ links.request }}" rel="noopener">Request a template</a></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

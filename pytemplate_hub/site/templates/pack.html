@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}{{ card.name }} · Pytemplate Hub{% endblock %}
+{% block description %}{{ card.description }}{% endblock %}
+{% block scripts %}
+<script type="module" src="{{ root }}static/js/builder.js"></script>
+{% endblock %}
+{% block content %}
+<div class="pack-head"><div class="wrap">
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="{{ links.templates }}">Templates</a><span>/</span><span>{{ card.owner }}</span><span>/</span><span>{{ card.pack_id }}</span></nav>
+  <div class="pack-title">
+    <h1>{{ card.name }}</h1>
+    {% if card.tier == "reviewed" %}<span class="badge reviewed">{{ card.tier_label }}</span>{% else %}<span class="badge">Listed</span>{% endif %}
+  </div>
+  <p class="desc">{{ card.description }}</p>
+  <div class="pinbar">
+    <span class="pin">{{ card.tag }}</span>
+    <span>commit {{ card.commit[:12] }}</span>
+    <span>digest {{ card.digest[:12] }}…</span>
+    <span>{{ card.license }}</span>
+    <span>{{ card.stars if card.stars is not none else "stars unavailable" }}{% if card.stars is not none %} stars{% endif %}</span>
+    <a href="{{ card.repository }}" rel="noopener nofollow">Source</a>
+    <a href="{{ card.repository }}/issues" rel="noopener nofollow">Issues</a>
+  </div>
+  {% if card.categories or card.keywords %}
+  <div class="chips" aria-label="Categories and keywords">
+    {% for category in card.categories %}<a class="chip cat-chip" href="{{ links.templates }}?category={{ category }}">{{ card.category_labels[loop.index0] }}</a>{% endfor %}
+    {% for keyword in card.keywords %}<a class="chip" href="{{ links.templates }}?q={{ keyword|urlencode }}">{{ keyword }}</a>{% endfor %}
+  </div>
+  {% endif %}
+</div></div>
+
+<div class="wrap pack">
+  <div class="pack-main">
+    <section>
+      <h2>Profiles</h2>
+      <div class="profiles">
+        {% for profile in card.profiles %}
+        <label class="prof" id="profile-{{ profile.id }}">
+          <input type="radio" name="profile" value="{{ profile.id }}" data-profile-pick{% if loop.first %} checked{% endif %}>
+          <span class="nm">{{ profile.name }} <code>{{ profile.id }}</code>{% if profile.kind_label %}<span class="kind">{{ profile.kind_label }}</span>{% endif %}</span>
+          {% if profile.description %}<p>{{ profile.description }}</p>{% endif %}
+          <span class="meta">{% if profile.python %}Python {{ profile.python|join(', ') }} · {% endif %}{% if profile.stack %}{{ profile.stack|join(', ') }} · {% endif %}lifecycle {{ profile.lifecycle }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </section>
+
+    {% for profile in card.profiles %}
+    <section class="profile-detail" data-profile-detail="{{ profile.id }}"{% if not loop.first %} hidden{% endif %}>
+      <h2>Commands for {{ profile.id }}</h2>
+      <div class="cmd-row"><pre><code>{{ profile.command.text }}</code></pre><button class="btn small" type="button" data-copy="{{ profile.command.text }}" data-what="Command"><svg width="14" height="14" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+      <details class="pinned">
+        <summary>Fully pinned (CI, offline)</summary>
+        <div class="cmd-row"><pre><code>{{ profile.command.pinned }}</code></pre><button class="btn small" type="button" data-copy="{{ profile.command.pinned }}" data-what="Pinned command"><svg width="14" height="14" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button></div>
+      </details>
+      <h2 class="spaced">What the hub checked for {{ profile.id }} at {{ card.tag }}</h2>
+      <div class="checks">
+        <div class="check"><code>render with default answers, Copier unsafe=False</code><span class="ok"><svg width="13" height="13" aria-hidden="true"><use href="#i-check"/></svg>passed</span></div>
+        <div class="check"><code>the profile's lifecycle commands (uv sync, lint, type-check, tests)</code>{% if profile.lifecycle == "passed" %}<span class="ok"><svg width="13" height="13" aria-hidden="true"><use href="#i-check"/></svg>passed</span>{% else %}<span class="notrun">not run</span>{% endif %}</div>
+      </div>
+      <p class="note">Checked {{ card.checked_on or "on a date not recorded" }} with {{ card.checked_with }}. Passing means the default answers worked then; it does not mean other answers or components work, or that the pack is safe.</p>
+      {% if profile.security_posture %}
+      <h2 class="spaced">Security posture, from the profile</h2>
+      <p class="posture">{{ profile.security_posture }}</p>
+      {% endif %}
+    </section>
+    {% endfor %}
+
+    <section>
+      <h2>Versions</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Tag</th><th>Checked</th><th>With</th><th>Commit</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for version in card.versions %}
+          <tr><td><span class="pin">{{ version.tag }}</span></td><td>{{ version.checked_on or "not recorded" }}</td><td><code>{{ version.checked_with }}</code></td><td><code>{{ version.commit[:12] }}</code></td><td>{% if version.yanked %}Yanked: {{ version.yanked }}{% else %}{{ version.tier_label }}{% endif %}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table></div>
+      <p class="note">Yanked versions stay in the index and its JSON, and leave the commands.</p>
+    </section>
+
+    {% if similar %}
+    <section>
+      <h2>Similar packs</h2>
+      <div class="mini">
+        {% for other in similar %}
+        <a href="../../{{ other.owner }}/{{ other.pack_id }}/index.html"><b>{{ other.name }}</b><span class="pin">{{ other.tag }}</span><span class="muted">{{ other.description }}</span></a>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+  </div>
+
+  <aside class="builder" aria-label="Command builder" data-builder data-pack="{{ card.owner }}/{{ card.pack_id }}" data-tag="{{ card.tag }}" data-source="gh:{{ card.repository|replace('https://github.com/', '') }}" data-commit="{{ card.commit }}" data-digest="{{ card.digest }}">
+    <div class="b-tabs" role="tablist" aria-label="Command">
+      <button class="b-tab" role="tab" type="button" data-tab="create" aria-selected="true">Create</button>
+      <button class="b-tab" role="tab" type="button" data-tab="plan" aria-selected="false">Preview first</button>
+      <button class="b-tab" role="tab" type="button" data-tab="pinned" aria-selected="false">CI, offline</button>
+    </div>
+    <div class="b-body">
+      <label class="field"><span>Project name</span>
+        <input type="text" id="b-name" value="my-project" spellcheck="false" autocomplete="off" aria-describedby="b-name-help">
+        <small id="b-name-help">A lowercase name, for example market-data-api.</small>
+      </label>
+      <label class="field"><span>Profile</span>
+        <select id="b-profile">
+          {% for profile in card.profiles %}
+          <option value="{{ profile.id }}">{{ profile.id }} · {{ profile.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="toggle" id="b-yes-row"><input type="checkbox" id="b-yes" checked><span>Accept the defaults (<code>-y</code>) instead of answering questions</span></label>
+      <pre class="cmd" id="b-cmd">{{ card.profiles[0].command.text }}</pre>
+      <div class="b-actions">
+        <button class="btn primary" type="button" id="b-copy" data-copy="{{ card.profiles[0].command.text }}" data-what="Command"><svg width="14" height="14" aria-hidden="true"><use href="#i-copy"/></svg>Copy command</button>
+        <button class="btn" type="button" id="b-link" data-copy="" data-what="Link"><svg width="14" height="14" aria-hidden="true"><use href="#i-link"/></svg>Copy link</button>
+      </div>
+      <p class="b-note" id="b-note">pytemplate-uv 3.5 or later reads the commit and digest the hub checked for <code>{{ card.tag }}</code>, refuses the pack if anything changed, and writes nothing.</p>
+    </div>
+  </aside>
+</div>
+{% endblock %}

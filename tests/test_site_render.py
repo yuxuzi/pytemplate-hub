@@ -90,7 +90,13 @@ def test_build_is_offline_and_writes_all_outputs(tmp_path: Path) -> None:
     assert shown == 1
     for name in ("index.html", "index.json", "index.schema.json"):
         assert (output / name).is_file(), name
-    for asset in ("css/site.css", "js/copy.js", "js/spotlight.js", "js/filter.js"):
+    for asset in (
+        "css/site.css",
+        "js/copy.js",
+        "js/spotlight.js",
+        "js/catalog.js",
+        "js/builder.js",
+    ):
         assert (output / "static" / asset).is_file(), asset
     assert (output / "static" / "favicon.svg").is_file()
     assert (output / "static" / "logo.svg").is_file()
@@ -119,6 +125,7 @@ def test_every_relative_link_and_asset_exists(tmp_path: Path) -> None:
             if ref.startswith(("http://", "https://", "mailto:", "//")):
                 continue
             target, _, fragment = ref.partition("#")
+            target = target.split("?", 1)[0]
             linked = (path.parent / target).resolve() if target else path
             assert linked.is_file(), f"{ref} on {path.relative_to(output)} is missing"
             if fragment:
@@ -158,9 +165,14 @@ def test_category_tiles_count_the_listed_packs(tmp_path: Path) -> None:
     assert "1 listed" in web_tile
 
 
+def _pack_page(output: Path, owner: str = "acme", pack: str = "tools") -> str:
+    return (output / "templates" / owner / pack / "index.html").read_text(encoding="utf-8")
+
+
 def test_each_profile_has_a_short_command_and_a_pinned_one(tmp_path: Path) -> None:
     entry = _entry(_version(), name="Tools")
-    page = _build(_index(tmp_path, ("tools", entry)), tmp_path / "site")
+    _build(_index(tmp_path, ("tools", entry)), tmp_path / "site")
+    page = _pack_page(tmp_path / "site")
 
     short = "uvx pytemplate-uv@latest create my-project -h acme/tools@v1.0.0 -p tool -y"
     pinned = (
@@ -178,7 +190,8 @@ def test_each_profile_has_a_short_command_and_a_pinned_one(tmp_path: Path) -> No
 
 
 def test_the_pinned_command_sits_in_a_details_block(tmp_path: Path) -> None:
-    page = _build(_index(tmp_path, ("tools", _entry(_version()))), tmp_path / "site")
+    _build(_index(tmp_path, ("tools", _entry(_version()))), tmp_path / "site")
+    page = _pack_page(tmp_path / "site")
 
     details = page.split('<details class="pinned">', 1)[1].split("</details>", 1)[0]
     assert "--template-digest" in details

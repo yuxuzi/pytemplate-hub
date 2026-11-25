@@ -6,14 +6,23 @@ Everything from an entry is untrusted text. The page is rendered by ``render`` w
 from __future__ import annotations
 
 import json
+import math
 import urllib.error
 import urllib.request
 from collections.abc import Callable
+from datetime import date
 from pathlib import Path
 from typing import Any
 
 from pytemplate_hub.schema import CATEGORIES, Entry, Version, load_entry
-from pytemplate_hub.site.render import Card, Command, write_site
+from pytemplate_hub.site.render import (
+    KIND_LABELS,
+    Card,
+    Command,
+    Profile,
+    VersionRow,
+    write_site,
+)
 from pytemplate_hub.verify import entry_files
 
 STARS_TIMEOUT_SECONDS = 15.0
@@ -21,6 +30,26 @@ StarSource = Callable[[Entry], int | None]
 INDEX_FORMAT = 1
 INDEX_FILE = "index.json"
 SCHEMA_FILE = "index.schema.json"
+# Display names for the stack filter. A pack's stack is every name here that appears among its
+# profiles' dependencies or its own keywords; both come from the pack, so nothing is guessed.
+STACKS: dict[str, str] = {
+    "alembic": "Alembic",
+    "celery": "Celery",
+    "django": "Django",
+    "duckdb": "DuckDB",
+    "fastapi": "FastAPI",
+    "flask": "Flask",
+    "httpx": "HTTPX",
+    "mcp": "MCP",
+    "numpy": "NumPy",
+    "pandas": "pandas",
+    "polars": "Polars",
+    "pydantic": "Pydantic",
+    "redis": "Redis",
+    "sqlalchemy": "SQLAlchemy",
+    "typer": "Typer",
+    "uvicorn": "Uvicorn",
+}
 
 _SCHEMA_DRAFT = "https://json-schema.org/draft/2020-12/schema"
 _TEXT: dict[str, Any] = {"type": "string"}
@@ -178,7 +207,7 @@ def hub_command(entry: Entry, pack_id: str, version: Version, profile: str) -> s
 
 
 def build_site(index: Path, output: Path, *, stars: StarSource, built_on: str) -> int:
-    """Write ``index.html``, ``index.json``, and ``index.schema.json``; return packs shown."""
+    """Write every page, ``index.json``, and ``index.schema.json``; return the packs shown."""
     data: list[dict[str, Any]] = []
     cards: list[Card] = []
     for path in entry_files(index):
@@ -186,7 +215,7 @@ def build_site(index: Path, output: Path, *, stars: StarSource, built_on: str) -
         pack_stars = stars(entry)
         data.append(_pack_data(path.stem, entry, pack_stars))
         if entry.latest is not None:
-            cards.append(_card(entry, path.stem, pack_stars))
+            cards.append(_card(entry, path.stem, pack_stars, built_on))
     write_site(cards, built_on, output)
     payload = {
         "format": INDEX_FORMAT,
@@ -199,14 +228,53 @@ def build_site(index: Path, output: Path, *, stars: StarSource, built_on: str) -
     return len(cards)
 
 
-def _card(entry: Entry, pack_id: str, stars: int | None) -> Card:
+def stack_of(names: tuple[str, ...]) -> tuple[str, ...]:
+    """Return the display names of the known stack items among ``names``, without repeats."""
+    found: list[str] = []
+    for name in names:
+        label = STACKS.get(name.lower().replace("_", "-"))
+        if label and label not in found:
+            found.append(label)
+    return tuple(found)
+
+
+def recommended(version: Version, stars: int | None, built_on: str) -> float:
+    """Return the published ranking score: 0.4 trust + 0.3 freshness + 0.3 popularity.
+
+    trust is 1.0 for a reviewed version, 0.6 when every profile passed its lifecycle, else 0.3;
+    freshness is 1.0 when checked in the last 30 days, falling linearly to 0 at 365 days; and
+    popularity is ``min(1, log10(1 + stars) / 3)``, so 1,000 stars score 1.0.
+    """
+    if version.tier == "reviewed":
+        trust = 1.0
+    elif version.profiles and all(p.lifecycle == "passed" for p in version.profiles):
+        trust = 0.6
+    else:
+        trust = 0.3
+    freshness = 0.0
+    if version.checked_on is not None:
+        days = (date.fromisoformat(built_on) - version.checked_on).days
+        freshness = 1.0 if days <= 30 else max(0.0, 1 - (days - 30) / 335)
+    popularity = min(1.0, math.log10(1 + (stars or 0)) / 3)
+    return round(0.4 * trust + 0.3 * freshness + 0.3 * popularity, 4)
+
+
+def _card(entry: Entry, pack_id: str, stars: int | None, built_on: str) -> Card:
     latest = entry.latest
     assert latest is not None  # only packs with an active version get a card
     title = entry.name or pack_id
+    owner = entry.owner.lower()
     identifier = f"{entry.owner}/{pack_id}"
-    topics = (*(entry.categories or ()), *(entry.keywords or ()))
-    profile_ids = [profile.id for profile in latest.profiles]
-    search = " ".join([title, identifier, entry.description, latest.license, *profile_ids, *topics])
+    categories = tuple(entry.categories or ())
+    keywords = tuple(entry.keywords or ())
+    profiles = tuple(_profile(entry, pack_id, latest, check) for check in latest.profiles)
+    dependencies = tuple(name for check in latest.profiles for name in check.dependencies or ())
+    stack = stack_of((*dependencies, *keywords))
+    topics = (*categories, *(CATEGORIES.get(c, c) for c in categories), *keywords, *stack)
+    profile_words = [word for p in profiles for word in (p.id, p.name, p.kind or "")]
+    search = " ".join(
+        [title, identifier, entry.description, latest.license, *profile_words, *topics]
+    )
     checks = ", ".join(f"{p.id}: lifecycle {p.lifecycle}" for p in latest.profiles)
     star_text = "stars unavailable" if stars is None else f"{stars} stars"
     facts = (
@@ -216,6 +284,9 @@ def _card(entry: Entry, pack_id: str, stars: int | None) -> Card:
     return Card(
         name=title,
         identifier=identifier,
+        owner=owner,
+        pack_id=pack_id,
+        path=f"templates/{owner}/{pack_id}/",
         description=entry.description,
         repository=entry.repository,
         tag=latest.tag,
@@ -223,19 +294,65 @@ def _card(entry: Entry, pack_id: str, stars: int | None) -> Card:
         digest=latest.digest,
         license=latest.license,
         checked_on=latest.checked_on.isoformat() if latest.checked_on else None,
+        checked_with=latest.checked_with,
         tier=latest.tier,
-        tier_label="Listed" if latest.tier == "listed" else f"Reviewed by {latest.reviewed_by}",
+        tier_label=_tier_label(latest),
         facts=facts,
-        categories=tuple(entry.categories or ()),
+        categories=categories,
+        keywords=keywords,
+        stack=stack,
+        kinds=tuple(dict.fromkeys(p.kind for p in profiles if p.kind)),
+        python=tuple(sorted({v for p in profiles for v in p.python}, key=_python_order)),
+        stars=stars,
+        recommended=recommended(latest, stars, built_on),
         search=search.lower(),
-        commands=tuple(
-            Command(
-                profile=profile.id,
-                text=hub_command(entry, pack_id, latest, profile.id),
-                pinned=create_command(entry, latest, profile.id),
-            )
-            for profile in latest.profiles
+        search_name=title.lower(),
+        search_id=f"{owner} {pack_id}",
+        search_tags=" ".join([*topics, *profile_words]).lower(),
+        search_text=" ".join([entry.description, *(p.description for p in profiles)]).lower(),
+        commands=tuple(profile.command for profile in profiles),
+        profiles=profiles,
+        versions=tuple(_version_row(version) for version in reversed(entry.versions)),
+    )
+
+
+def _python_order(version: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in version.split("."))
+
+
+def _tier_label(version: Version) -> str:
+    return "Listed" if version.tier == "listed" else f"Reviewed by {version.reviewed_by}"
+
+
+def _profile(entry: Entry, pack_id: str, version: Version, check: Any) -> Profile:
+    kind = check.kind
+    return Profile(
+        id=check.id,
+        name=check.name or check.id,
+        description=check.description or "",
+        kind=kind,
+        kind_label=KIND_LABELS.get(kind) if kind else None,
+        python=tuple(check.supported_python or ()),
+        stack=stack_of(tuple(check.dependencies or ())),
+        lifecycle=check.lifecycle,
+        security_posture=check.security_posture,
+        command=Command(
+            profile=check.id,
+            text=hub_command(entry, pack_id, version, check.id),
+            pinned=create_command(entry, version, check.id),
         ),
+    )
+
+
+def _version_row(version: Version) -> VersionRow:
+    return VersionRow(
+        tag=version.tag,
+        commit=version.commit,
+        checked_on=version.checked_on.isoformat() if version.checked_on else None,
+        checked_with=version.checked_with,
+        license=version.license,
+        tier_label=_tier_label(version),
+        yanked=version.yanked,
     )
 
 

@@ -20,7 +20,7 @@
   <div class="wrap nav">
     <a class="brand" href="{{ links.home }}" aria-label="pytemplate home"><svg width="140" height="37" viewBox="0 0 244 64" aria-hidden="true"><use href="#i-logo"/></svg></a>
     <nav class="navlinks" aria-label="Main">
-      <a href="{{ links.templates }}">Templates</a>
+      <a href="{{ links.templates }}"{% if current == "templates" %} aria-current="page"{% endif %}>Templates</a>
       <a href="{{ links.learn }}"{% if current == "learn" %} aria-current="page"{% endif %}>Learn</a>
       <a href="{{ links.authors }}"{% if current == "publish" %} aria-current="page"{% endif %}>Publish a pack</a>
     </nav>

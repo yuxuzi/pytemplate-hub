@@ -47,7 +47,12 @@ def _index(tmp_path: Path, *versions: Version, **fields: str) -> Path:
 def _build(index: Path, tmp_path: Path, stars: Any = no_stars) -> tuple[int, str, dict[str, Any]]:
     output = tmp_path / "site"
     shown = build_site(index, output, stars=stars, built_on="2026-11-04")
-    page = (output / "index.html").read_text(encoding="utf-8")
+    # Every page the build wrote, so a test sees the home page, the catalog, and each pack's page.
+    page = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in sorted(output.rglob("index.html"))
+        if "learn" not in path.parts and "publish" not in path.parts
+    )
     return shown, page, json.loads((output / "index.json").read_text(encoding="utf-8"))
 
 
@@ -96,7 +101,9 @@ def test_page_script_never_builds_html() -> None:
 def test_page_loads_its_scripts_and_styles_from_the_site_only(tmp_path: Path) -> None:
     _, page, _ = _build(_index(tmp_path, _version()), tmp_path)
 
-    assert 'src="static/js/filter.js"' in page
+    assert 'src="static/js/spotlight.js"' in page
+    assert 'src="../static/js/catalog.js"' in page
+    assert 'src="../../../static/js/builder.js"' in page
     assert 'src="http' not in page
     assert 'href="static/css/site.css"' in page
 
@@ -115,7 +122,9 @@ def test_yanked_latest_falls_back_to_the_previous_version(tmp_path: Path) -> Non
 
     assert shown == 1
     assert "--template-ref v1.0.0" in page
-    assert "v2.0.0" not in page
+    assert "@v2.0.0" not in page
+    assert "--template-ref v2.0.0" not in page
+    assert "Yanked: Broken" in page
     assert data["packs"][0]["latest"] == "v1.0.0"
     assert [version["tag"] for version in data["packs"][0]["versions"]] == ["v1.0.0", "v2.0.0"]
 
@@ -372,5 +381,6 @@ def test_search_words_include_categories_and_keywords(tmp_path: Path) -> None:
 
     _, page, _ = _build(index, tmp_path)
 
-    assert 'data-search="' in page
-    assert "quant backtest" in page
+    tags = page.split('data-tags="', 1)[1].split('"', 1)[0]
+    assert "quant" in tags.split()
+    assert "backtest" in tags.split()
