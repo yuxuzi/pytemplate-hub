@@ -94,9 +94,9 @@ def no_stars(_: Entry) -> None:
 def create_command(entry: Entry, version: Version, profile: str) -> str:
     """Return the command that creates a project from ``profile`` at the listed tag.
 
-    The commit and digest make pytemplate-uv (3.1 or later) refuse the pack if the tag moved or
-    its files changed since the hub checked it. ``-y`` (3.2 or later; ``@latest`` guarantees it)
-    accepts the defaults without prompting.
+    The commit and digest make pytemplate-uv (3.1 or later) refuse a fetched pack if the tag moved
+    or its files changed since the hub checked it; a cached copy is checked against the digest.
+    ``-y`` (3.2 or later; ``@latest`` guarantees it) accepts the defaults without prompting.
     """
     source = f"gh:{entry.owner}/{entry.repository_name}"
     return (
@@ -162,7 +162,7 @@ def _card(entry: Entry, pack: dict[str, Any]) -> str:
 <span class="tier {latest.tier}">{escape(tier)}</span></div>
 <p class="id">{escape(identifier)}</p>
 <p class="description">{escape(entry.description)}</p>
-<p class="facts" title="{latest.commit}">{escape(facts)}</p>
+<p class="facts" title="{escape(latest.commit, quote=True)}">{escape(facts)}</p>
 {commands}
 <p class="links"><a href="{escape(entry.repository)}" rel="noopener nofollow">Source</a> ·
 <a href="{escape(entry.repository)}/issues" rel="noopener nofollow">Comments and issues</a></p>

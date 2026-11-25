@@ -18,12 +18,14 @@ from pytemplate_hub.errors import FetchError, HubError, PackCheckError
 from pytemplate_hub.fetch import GitFetcher, directory_digest
 from pytemplate_hub.schema import (
     GITHUB_URL,
+    PACK_ID,
     Entry,
     ProfileCheck,
     Version,
     dump_entry,
     entry_path,
     load_entry,
+    tag_problem,
 )
 
 CHECK_PROJECT = "hub-check"
@@ -105,10 +107,22 @@ def check_pack(
     except _PACK_ERRORS as error:
         raise PackCheckError(f"The pack failed its checks: {error}") from error
     assert source.pack_id is not None and source.pack_version is not None  # set for every pack
-    manifest = tomllib.loads((root / PACK_MANIFEST).read_text(encoding="utf-8"))
-    return PackCheck(
-        source.pack_id, source.pack_version, manifest["name"], manifest["description"], checks
-    )
+    name, description = _manifest_text(root)
+    return PackCheck(source.pack_id, source.pack_version, name, description, checks)
+
+
+def _manifest_text(root: Path) -> tuple[str, str]:
+    """Return the pack's ``name`` and ``description``, or refuse with the fix to make."""
+    try:
+        manifest = tomllib.loads((root / PACK_MANIFEST).read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as error:
+        raise PackCheckError(f"{PACK_MANIFEST} could not be read: {error}") from error
+    name, description = manifest.get("name"), manifest.get("description")
+    if not isinstance(name, str) or not isinstance(description, str):
+        raise PackCheckError(
+            f"{PACK_MANIFEST} must set `name` and `description` as text strings. Add both keys."
+        )
+    return name, description
 
 
 def _check_profile(root: Path, profile: str, run_lifecycle: bool, runner: Runner) -> ProfileCheck:
@@ -178,11 +192,23 @@ def add_version(
     *,
     run_lifecycle: bool = False,
 ) -> Path:
-    """Check ``tag`` and record it in the pack's entry, creating the entry if needed."""
+    """Check ``tag`` and record it in the pack's entry, creating the entry if needed.
+
+    A tag git would refuse is reported before anything is fetched.
+    """
     match = GITHUB_URL.match(repository)
     owner = match.group(1) if match else ""
     entry = Entry(repository=repository)
+    problem = tag_problem(tag)
+    if problem is not None:
+        raise FetchError(f"Tag {tag!r} cannot be fetched: {problem}. Use a tag name git accepts.")
     found = inspect_version(repository, tag, license_name, fetcher, run_lifecycle=run_lifecycle)
+    if not PACK_ID.fullmatch(found.pack_id):
+        raise PackCheckError(
+            f"The manifest's pack id {found.pack_id!r} is not allowed. A pack id must match "
+            f"{PACK_ID.pattern}: lowercase letters, digits, and hyphens. Rename the pack in "
+            f"{PACK_MANIFEST} and tag again."
+        )
     path = entry_path(index, owner, found.pack_id)
     if path.exists():
         entry = load_entry(path)
@@ -256,17 +282,29 @@ def entry_files(index: Path) -> list[Path]:
 
 
 def changed_claims(base: Path, index: Path) -> list[str]:
-    """Return changes that need a maintainer: review claims and rewritten version facts.
+    """Return changes that need a maintainer, comparing the index with its base.
 
+    Reported: an added review claim; a changed fact of a listed version; a listed version that the
+    index removes (yank it instead); and an entry file that the index deletes from the base.
     Only ``reviewed_by`` and ``yanked`` may change on a listed version. Any added review claim is
     reported, so a maintainer recording a real review overrides this check deliberately.
     """
     problems: list[str] = []
+    present = {path.relative_to(index) for path in entry_files(index)}
+    for path in entry_files(base):
+        relative = path.relative_to(base)
+        if relative not in present:
+            problems.append(f"{relative}: deletes a whole entry; yank its versions instead.")
     for path in entry_files(index):
         relative = path.relative_to(index)
         before = load_entry(base / relative) if (base / relative).is_file() else None
         listed = {version.tag: version for version in before.versions} if before else {}
-        for version in load_entry(path).versions:
+        versions = load_entry(path).versions
+        after = {version.tag for version in versions}
+        for tag in listed:
+            if tag not in after:
+                problems.append(f"{relative} {tag}: removes a listed version; yank it instead.")
+        for version in versions:
             old = listed.get(version.tag)
             if version.reviewed_by and (old is None or old.reviewed_by != version.reviewed_by):
                 problems.append(f"{relative} {version.tag}: adds a review claim.")

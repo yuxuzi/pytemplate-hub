@@ -10,7 +10,7 @@ import pytest
 
 from pytemplate_hub.errors import EntryError
 from pytemplate_hub.schema import Entry, ProfileCheck, Version, dump_entry, load_entry
-from pytemplate_hub.site import build_site, create_command, github_stars, no_stars
+from pytemplate_hub.site import _card, build_site, create_command, github_stars, no_stars
 
 ATTACK = '<script>alert(1)</script>" onmouseover="alert(2)'
 
@@ -78,6 +78,17 @@ def test_untrusted_text_is_escaped(tmp_path: Path) -> None:
     assert "<script>alert" not in page
     assert '" onmouseover="' not in page
     assert page.count("<script>") == 1
+
+
+def test_commit_in_the_title_attribute_is_escaped() -> None:
+    # model_copy skips validation, so the commit can hold a quote that a real entry never could.
+    hostile = _version().model_copy(update={"commit": 'x" onmouseover="alert(3)'})
+    entry = Entry(repository="https://github.com/acme/repo", versions=(hostile,))
+
+    card = _card(entry, {"id": "tools", "stars": None})
+
+    assert 'onmouseover="' not in card
+    assert "x&quot; onmouseover=&quot;alert(3)" in card
 
 
 def test_page_script_never_builds_html(tmp_path: Path) -> None:

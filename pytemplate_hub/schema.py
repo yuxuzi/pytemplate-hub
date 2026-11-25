@@ -8,16 +8,51 @@ import tomllib
 from pathlib import Path
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationError,
+    model_validator,
+)
 
 from pytemplate_hub.errors import EntryError
 
 GITHUB_URL = re.compile(r"^https://github\.com/([A-Za-z0-9-]+)/([A-Za-z0-9._-]+)$")
 PACK_ID = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+TAG_CHARACTERS = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 NAME_MAX = 100
 DESCRIPTION_MAX = 500
 
-Tag = Annotated[str, Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")]
+
+def tag_problem(tag: str) -> str | None:
+    """Return why git would refuse ``tag`` as a tag name, or None when the name is acceptable.
+
+    Beyond the character pattern, git refuses a name that contains ``..`` or ``@{``, ends in
+    ``.lock``, or ends in ``.`` or ``/``. Checking these before a fetch saves a late git error.
+    """
+    if not TAG_CHARACTERS.match(tag):
+        return "it must start with a letter or digit and use only letters, digits, '.', '_', '-'"
+    if ".." in tag:
+        return "it contains '..'"
+    if "@{" in tag:
+        return "it contains '@{'"
+    if tag.endswith(".lock"):
+        return "it ends in '.lock'"
+    if tag.endswith((".", "/")):
+        return "it ends in '.' or '/'"
+    return None
+
+
+def _check_tag(tag: str) -> str:
+    problem = tag_problem(tag)
+    if problem is not None:
+        raise ValueError(f"tag {tag!r} is not a valid git tag name: {problem}.")
+    return tag
+
+
+Tag = Annotated[str, Field(pattern=TAG_CHARACTERS.pattern), AfterValidator(_check_tag)]
 Commit = Annotated[str, Field(pattern=r"^[0-9a-f]{40}$")]
 Digest = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
 License = Annotated[str, Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9.+ ()-]*$")]
@@ -65,9 +100,15 @@ class Entry(_Strict):
 
     @model_validator(mode="after")
     def _check(self) -> Entry:
-        if not GITHUB_URL.match(self.repository) or self.repository.endswith(".git"):
+        match = GITHUB_URL.match(self.repository)
+        if not match or self.repository.endswith(".git"):
             raise ValueError(
                 f"repository must look like https://github.com/owner/repo, got {self.repository!r}"
+            )
+        if match.group(2) in (".", ".."):
+            raise ValueError(
+                f"repository name must not be '.' or '..', got {self.repository!r}. "
+                "Use the repository's own name."
             )
         tags = [version.tag for version in self.versions]
         if len(tags) != len(set(tags)):
@@ -104,7 +145,7 @@ def load_entry(path: Path) -> Entry:
     """Read an entry, and check that its path names its repository's owner and a valid pack id."""
     try:
         entry = Entry.model_validate(tomllib.loads(path.read_text(encoding="utf-8")))
-    except (OSError, tomllib.TOMLDecodeError, ValidationError) as error:
+    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError, ValidationError) as error:
         raise EntryError(f"{path}: {error}") from error
     if not PACK_ID.match(path.stem):
         raise EntryError(f"{path}: the file name must be a lowercase pack id.")

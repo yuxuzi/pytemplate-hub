@@ -1,18 +1,48 @@
 """Tests for the listing checks and for re-verifying listed versions."""
 
+import dataclasses
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
+from pytemplate import api
 
+from pytemplate_hub import verify
 from pytemplate_hub.errors import FetchError, PackCheckError
 from pytemplate_hub.fetch import GitFetcher
-from pytemplate_hub.schema import Entry, dump_entry, load_entry
-from pytemplate_hub.verify import add_version, check_pack, entry_files, verify_entry
+from pytemplate_hub.schema import (
+    Entry,
+    ProfileCheck,
+    Version,
+    dump_entry,
+    load_entry,
+    tag_problem,
+)
+from pytemplate_hub.verify import (
+    Inspected,
+    add_version,
+    changed_claims,
+    check_pack,
+    entry_files,
+    verify_entry,
+)
 from tests.conftest import REPOSITORY, commit_all, git
 
 
 def _add(index: Path, fetcher: GitFetcher, tag: str = "v1.0.0") -> Path:
     return add_version(index, REPOSITORY, tag, "MIT", fetcher)
+
+
+def _version() -> Version:
+    return Version(
+        tag="v1.0.0",
+        commit="a" * 40,
+        digest="b" * 64,
+        pack_version="1.0.0",
+        license="MIT",
+        checked_with="pytemplate-uv==3.0.0",
+        profiles=(ProfileCheck(id="tool", lifecycle="not-run"),),
+    )
 
 
 def test_sample_pack_passes_without_running_its_code(pack_dir: Path) -> None:
@@ -67,6 +97,14 @@ def test_pack_declaring_code_running_settings_is_rejected(pack_dir: Path, settin
         check_pack(pack_dir)
 
 
+def test_render_request_has_no_unsafe_option() -> None:
+    """Rendering runs Copier with ``unsafe=False`` (pytemplate-uv, rendering.py). A request has no
+    field that can turn it on, so a pack cannot opt out of that protection through the hub."""
+    names = {field.name for field in dataclasses.fields(api.RenderRequest)}
+
+    assert not any("unsafe" in name for name in names)
+
+
 def test_pack_with_a_symlink_is_rejected(pack_dir: Path) -> None:
     (pack_dir / "tool" / "template" / "stolen").symlink_to("/etc/hosts")
 
@@ -79,6 +117,45 @@ def test_invalid_manifest_is_rejected(pack_dir: Path) -> None:
 
     with pytest.raises(PackCheckError, match="contract"):
         check_pack(pack_dir)
+
+
+@pytest.mark.parametrize(
+    "manifest",
+    [
+        'contract = 1\nid = "tools"\nversion = "1.0.0"\ndescription = "A pack"\n',
+        'contract = 1\nid = "tools"\nversion = "1.0.0"\nname = "Tools"\n',
+        'contract = 1\nid = "tools"\nversion = "1.0.0"\nname = 7\ndescription = "A pack"\n',
+        'contract = 1\nid = "tools"\nversion = "1.0.0"\nname = "Tools" = bad\n',
+    ],
+    ids=["no-name", "no-description", "name-not-text", "bad-toml"],
+)
+def test_manifest_without_text_name_and_description_is_a_pack_error(
+    pack_dir: Path, manifest: str
+) -> None:
+    (pack_dir / "pytemplate-pack.toml").write_text(manifest, encoding="utf-8")
+
+    with pytest.raises(PackCheckError, match=r"pytemplate-pack\.toml"):
+        check_pack(pack_dir)
+
+
+@pytest.mark.parametrize(
+    "manifest",
+    ['description = "A pack"\n', 'name = "Tools"\n', "name = 7\ndescription = 'x'\n", "name = ["],
+    ids=["missing-name", "missing-description", "not-text", "bad-toml"],
+)
+def test_manifest_text_reader_refuses_a_missing_or_bad_name(tmp_path: Path, manifest: str) -> None:
+    (tmp_path / "pytemplate-pack.toml").write_text(manifest, encoding="utf-8")
+
+    with pytest.raises(PackCheckError, match=r"pytemplate-pack\.toml"):
+        verify._manifest_text(tmp_path)
+
+
+def test_manifest_text_reader_returns_name_and_description(tmp_path: Path) -> None:
+    (tmp_path / "pytemplate-pack.toml").write_text(
+        'name = "T"\ndescription = "D"\n', encoding="utf-8"
+    )
+
+    assert verify._manifest_text(tmp_path) == ("T", "D")
 
 
 def test_missing_license_is_rejected(pack_dir: Path) -> None:
@@ -135,6 +212,47 @@ def test_a_different_repository_cannot_take_over_an_entry(
 
     with pytest.raises(PackCheckError, match="already lists this pack"):
         add_version(index, "https://github.com/acme/other", "v1.0.0", "MIT", fetcher)
+
+
+@pytest.mark.parametrize("pack_id", ["../../escape", "Tools", "a/b", "-leading", "a\n"])
+def test_add_refuses_a_manifest_pack_id_that_is_not_allowed(
+    pack_id: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    def hostile(*_: object, **__: object) -> Inspected:
+        return Inspected(pack_id, "Tools", "", _version())
+
+    monkeypatch.setattr(verify, "inspect_version", hostile)
+    index = tmp_path / "index"
+
+    with pytest.raises(PackCheckError, match=r"pack id .* is not allowed"):
+        add_version(index, REPOSITORY, "v1.0.0", "MIT", fetcher=None)  # type: ignore[arg-type]
+    assert not index.exists()
+
+
+@pytest.mark.parametrize("tag", ["v1..0", "v1.0.0.lock", "v1.", "v1.0@{x", "v1..", "a..b.lock"])
+def test_add_refuses_a_tag_git_would_refuse_before_fetching(
+    tag: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    def no_fetch(*_: object, **__: object) -> Inspected:
+        raise AssertionError("a tag git refuses must not be fetched")
+
+    monkeypatch.setattr(verify, "inspect_version", no_fetch)
+    index = tmp_path / "index"
+
+    with pytest.raises(FetchError, match=r"cannot be fetched: .*"):
+        add_version(index, REPOSITORY, tag, "MIT", fetcher=None)  # type: ignore[arg-type]
+    assert not index.exists()
+
+
+@pytest.mark.parametrize("tag", ["v1..0", "v1.0.0.lock", "v1."])
+def test_version_refuses_a_tag_git_would_refuse(tag: str) -> None:
+    with pytest.raises(ValidationError, match="not a valid git tag name"):
+        _version().model_validate({**_version().model_dump(), "tag": tag})
+
+
+def test_tag_rule_accepts_ordinary_tags() -> None:
+    assert tag_problem("v1.0.0") is None
+    assert tag_problem("v1.0.0-rc.1") is None
 
 
 def test_add_refuses_a_non_github_repository(fetcher: GitFetcher, tmp_path: Path) -> None:
@@ -226,3 +344,38 @@ def test_entry_files_lists_only_entries(fetcher: GitFetcher, tmp_path: Path) -> 
     (index / "README.md").write_text("notes\n", encoding="utf-8")
 
     assert entry_files(index) == [path]
+
+
+def _write_entry(root: Path, entry: Entry) -> None:
+    path = root / "acme" / "tools.toml"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(dump_entry(entry), encoding="utf-8")
+
+
+def test_removed_version_message_says_to_yank(tmp_path: Path) -> None:
+    base, head = tmp_path / "base", tmp_path / "head"
+    _write_entry(base, Entry(repository=REPOSITORY, versions=(_version(),)))
+    _write_entry(head, Entry(repository=REPOSITORY))
+
+    assert changed_claims(base, head) == [
+        "acme/tools.toml v1.0.0: removes a listed version; yank it instead."
+    ]
+
+
+def test_deleted_entry_file_is_reported(tmp_path: Path) -> None:
+    base, head = tmp_path / "base", tmp_path / "head"
+    _write_entry(base, Entry(repository=REPOSITORY, versions=(_version(),)))
+    head.mkdir()
+
+    problems = changed_claims(base, head)
+
+    assert problems == ["acme/tools.toml: deletes a whole entry; yank its versions instead."]
+
+
+def test_yanking_a_version_is_not_reported(tmp_path: Path) -> None:
+    base, head = tmp_path / "base", tmp_path / "head"
+    _write_entry(base, Entry(repository=REPOSITORY, versions=(_version(),)))
+    yanked = _version().model_copy(update={"yanked": "A bad release"})
+    _write_entry(head, Entry(repository=REPOSITORY, versions=(yanked,)))
+
+    assert changed_claims(base, head) == []

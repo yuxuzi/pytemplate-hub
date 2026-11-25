@@ -75,20 +75,20 @@ Local fixtures only (no network). Probe scripts were run from the scratchpad aga
 ## Prioritized issues
 
 - **P0-1** PR-controlled checker (`verify-index.yml:25`, `:34`, `:36`). Fix: run hub tooling from the base SHA; read the PR's `index/` as data.
-- **P1-1** Manifest pack id writes outside the index (`verify.py:186`). Fix: validate with `PACK_ID` before `entry_path`.
-- **P1-2** Non-UTF-8 entry crashes instead of failing as `EntryError` (`schema.py:106-107`). Fix: catch `UnicodeDecodeError` in `load_entry`.
-- **P1-3** Deleted listed versions pass `check-claims` (`verify.py:258-275`). Fix: flag any removed or altered listed version.
+- **P1-1** Manifest pack id writes outside the index (`verify.py:186`). Fix: validate with `PACK_ID` before `entry_path`. Fixed in fix/audit-p1.
+- **P1-2** Non-UTF-8 entry crashes instead of failing as `EntryError` (`schema.py:106-107`). Fix: catch `UnicodeDecodeError` in `load_entry`. Fixed in fix/audit-p1.
+- **P1-3** Deleted listed versions pass `check-claims` (`verify.py:258-275`). Fix: flag any removed or altered listed version. Fixed in fix/audit-p1.
 - **P1-4** Declared license never compared with the license file (`verify.py:97-98`, `:243-250`). Fix: check the declaration or require review.
 - **P1-5** No CODEOWNERS on `index/` or hub code (`.github/`). Fix: add `CODEOWNERS`.
 - **P1-6** Lifecycle allow-list is a naming check; `uv run` runs any program; no network isolation (`verify.py:131-133`, `:140-143`). Fix: document as not a sandbox; run in a no-network container.
-- **P1-7** Pin `unsafe=False` through `api.render` with a test (`verify.py:114-126`). Fix: add the test.
+- **P1-7** Pin `unsafe=False` through `api.render` with a test (`verify.py:114-126`). Fix: add the test. Fixed in fix/audit-p1 (the `_tasks` rejection test already existed; this pins the `RenderRequest` shape, not the value pytemplate-uv passes).
 - **P1-8** EOL and `.gitattributes` may change digests across OSes (`fetch.py:89`; unverified). Fix: verify on Windows; reject EOL attributes.
-- **P2-1** Tags `v1..0` and `*.lock` accepted (`schema.py:20`). Fix: apply git ref rules before fetching.
-- **P2-2** Dot-segment repository names accepted (`schema.py:15`). Fix: refuse `.` and `..` segments.
+- **P2-1** Tags `v1..0` and `*.lock` accepted (`schema.py:20`). Fix: apply git ref rules before fetching. Fixed in fix/audit-p1.
+- **P2-2** Dot-segment repository names accepted (`schema.py:15`). Fix: refuse `.` and `..` segments. Fixed in fix/audit-p1.
 - **P2-3** Executable bit and empty directories not hashed (`fetch.py:28-36`). Fix: hash a manifest of modes and directories.
 - **P2-4** Submodules silently excluded (`fetch.py:58-73`; unverified). Fix: refuse mode 160000.
 - **P2-5** Stars: no token, no cache, silent failure, unbounded body (`site.py:76-87`). Fix: C3.
 - **P2-6** JSON has no schema file (`site.py:120-121`). Fix: B2.
-- **P2-7** Commit in a `title` attribute is unescaped (`site.py:164`). Fix: escape it.
+- **P2-7** Commit in a `title` attribute is unescaped (`site.py:164`). Fix: escape it. Fixed in fix/audit-p1.
 - **P2-8** Yanking is unrestricted (`verify.py:258-275`). Fix: C2.
-- **P2-9** `manifest["name"]` read outside `try` (`verify.py:108-110`; unverified). Fix: wrap it.
+- **P2-9** `manifest["name"]` read outside `try` (`verify.py:108-110`; unverified). Fix: wrap it. Fixed in fix/audit-p1 (pytemplate-uv already rejects a missing or non-text name, so the wrap is a backstop; see the direct tests of `_manifest_text`).

@@ -32,10 +32,6 @@ def _version(tag: str = "v1.0.0") -> Version:
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="audit error handling: a non-UTF-8 entry raises UnicodeDecodeError, not EntryError",
-)
 def test_non_utf8_entry_is_reported_as_an_entry_error(tmp_path: Path) -> None:
     path = tmp_path / "acme" / "tools.toml"
     path.parent.mkdir()
@@ -49,21 +45,12 @@ def test_non_utf8_entry_is_reported_as_an_entry_error(tmp_path: Path) -> None:
         load_entry(path)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="audit tag and commit validation: a repository named '..' or '.' is accepted",
-)
 @pytest.mark.parametrize("repository", ["https://github.com/acme/..", "https://github.com/acme/."])
 def test_repository_name_cannot_be_a_dot_segment(repository: str) -> None:
     with pytest.raises(ValueError):
         Entry(repository=repository)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="audit index schema: a pack id taken from the pack's manifest is used as a path "
-    "before it is validated, so it can point outside the index",
-)
 def test_manifest_pack_id_cannot_escape_the_index(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -78,10 +65,6 @@ def test_manifest_pack_id_cannot_escape_the_index(
     assert not (tmp_path / "escape.toml").exists()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="audit reviewed status: a change that deletes a listed version passes check-claims",
-)
 def test_removing_a_listed_version_is_reported(tmp_path: Path) -> None:
     base = tmp_path / "base"
     head = tmp_path / "head"
