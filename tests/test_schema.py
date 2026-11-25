@@ -1,11 +1,21 @@
 """Tests for the index entry format."""
 
+from datetime import date
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from pytemplate_hub.errors import EntryError
-from pytemplate_hub.schema import Entry, ProfileCheck, Version, dump_entry, load_entry
+from pytemplate_hub.schema import (
+    CATEGORIES,
+    Entry,
+    ProfileCheck,
+    Version,
+    dependency_name,
+    dump_entry,
+    load_entry,
+)
 
 
 def _version(tag: str = "v1.0.0", **changes: str) -> Version:
@@ -106,3 +116,104 @@ def test_file_name_must_be_a_pack_id(tmp_path: Path) -> None:
 
     with pytest.raises(EntryError, match="pack id"):
         load_entry(_write(tmp_path, entry, name="Not_A_Slug"))
+
+
+def _profile_details() -> ProfileCheck:
+    return ProfileCheck(
+        id="tool",
+        lifecycle="passed",
+        name="Sample tool",
+        description="A small package.",
+        kind="library",
+        supported_python=("3.11", "3.12"),
+        dependencies=("rich", "typer"),
+        security_posture="Rendering contacts no service.",
+    )
+
+
+def test_round_trip_keeps_profile_details_checked_on_categories_and_keywords(
+    tmp_path: Path,
+) -> None:
+    version = _version(checked_on=date(2026, 11, 24), profiles=(_profile_details(),))
+    entry = Entry(
+        repository="https://github.com/acme/tools",
+        name="Tools",
+        categories=("cli", "data"),
+        keywords=("polars", "c++ tools"),
+        versions=(version,),
+    )
+
+    loaded = load_entry(_write(tmp_path, entry))
+
+    assert loaded == entry
+    assert loaded.versions[0].checked_on == date(2026, 11, 24)
+    assert loaded.versions[0].profiles[0].dependencies == ("rich", "typer")
+
+
+def test_entry_written_before_the_new_fields_still_loads(tmp_path: Path) -> None:
+    path = tmp_path / "acme" / "tools.toml"
+    path.parent.mkdir()
+    path.write_text(
+        'format = 1\nrepository = "https://github.com/acme/tools"\n\n[[versions]]\n'
+        'tag = "v1.0.0"\ncommit = "' + "a" * 40 + '"\ndigest = "' + "b" * 64 + '"\n'
+        'pack_version = "1.0.0"\nlicense = "MIT"\nchecked_with = "pytemplate-uv==3.0.0"\n'
+        'profiles = [{ id = "tool", lifecycle = "not-run" }]\n',
+        encoding="utf-8",
+    )
+
+    loaded = load_entry(path)
+
+    assert loaded.categories == ()
+    assert loaded.versions[0].checked_on is None
+    assert loaded.versions[0].profiles[0].kind is None
+    assert loaded.versions[0].profiles[0].dependencies == ()
+
+
+@pytest.mark.parametrize(
+    "categories",
+    [("gardening",), ("cli", "cli"), ("CLI",)],
+)
+def test_unknown_or_repeated_category_is_refused(categories: tuple[str, ...]) -> None:
+    with pytest.raises(ValidationError, match="category"):
+        Entry(repository="https://github.com/acme/tools", categories=categories)
+
+
+def test_unknown_category_names_the_vocabulary() -> None:
+    with pytest.raises(ValidationError, match=r"Use one of: cli, library, web"):
+        Entry(repository="https://github.com/acme/tools", categories=("gardening",))
+
+
+@pytest.mark.parametrize("keyword", ["", "Polars", "-leading", "a" * 31, "bad,comma"])
+def test_invalid_keyword_is_refused(keyword: str) -> None:
+    with pytest.raises(ValidationError, match="keyword"):
+        Entry(repository="https://github.com/acme/tools", keywords=(keyword,))
+
+
+def test_too_many_keywords_are_refused() -> None:
+    with pytest.raises(ValidationError, match="at most 12"):
+        Entry(
+            repository="https://github.com/acme/tools", keywords=tuple(f"k{i}" for i in range(13))
+        )
+
+
+@pytest.mark.parametrize("kind", ["plugin", "Library"])
+def test_unknown_profile_kind_is_refused(kind: str) -> None:
+    with pytest.raises(ValidationError):
+        ProfileCheck(id="tool", lifecycle="passed", kind=kind)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    ("requirement", "name"),
+    [("rich>=13.7", "rich"), ("  typer[all]~=0.12", "typer"), ("zope.interface", "zope.interface")],
+)
+def test_dependency_name_drops_version_and_extras(requirement: str, name: str) -> None:
+    assert dependency_name(requirement) == name
+
+
+def test_dependency_name_refuses_a_line_with_no_name() -> None:
+    assert dependency_name(">=1.0") is None
+
+
+def test_categories_vocabulary_has_labels_in_file_order() -> None:
+    assert list(CATEGORIES) == ["cli", "library", "web", "worker", "data", "ai", "quant"]
+    assert CATEGORIES["ai"] == "AI tools and MCP"
