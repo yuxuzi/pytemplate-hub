@@ -3,6 +3,7 @@
 import io
 import json
 import urllib.request
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -10,7 +11,13 @@ import pytest
 
 from pytemplate_hub.errors import EntryError
 from pytemplate_hub.schema import Entry, ProfileCheck, Version, dump_entry, load_entry
-from pytemplate_hub.site import _card, build_site, create_command, github_stars, no_stars
+from pytemplate_hub.site import (
+    _card,
+    build_site,
+    create_command,
+    github_stars,
+    no_stars,
+)
 
 ATTACK = '<script>alert(1)</script>" onmouseover="alert(2)'
 
@@ -211,3 +218,162 @@ def test_github_stars_is_none_when_github_is_unreachable(monkeypatch: pytest.Mon
     monkeypatch.setattr(urllib.request, "urlopen", fail)
 
     assert github_stars(Entry(repository="https://github.com/acme/repo")) is None
+
+
+_TYPES: dict[str, tuple[type, ...]] = {
+    "string": (str,),
+    "integer": (int,),
+    "array": (list,),
+    "object": (dict,),
+    "null": (type(None),),
+}
+
+
+def _violations(instance: Any, schema: dict[str, Any], path: str = "$") -> list[str]:
+    """Check ``instance`` against the JSON Schema keywords the hub's schema uses.
+
+    The hub has no JSON Schema library as a dependency, so this covers the keywords the index
+    schema uses: const, enum, type, format (date), properties, required, additionalProperties
+    (false), and items. Any other keyword is an error, so the schema cannot quietly outgrow the
+    check.
+    """
+    known = {
+        "$schema",
+        "title",
+        "description",
+        "const",
+        "enum",
+        "type",
+        "format",
+        "properties",
+        "required",
+        "additionalProperties",
+        "items",
+    }
+    unknown = set(schema) - known
+    assert not unknown, f"the checker does not know the keyword(s) {sorted(unknown)}"
+    problems: list[str] = []
+    if "const" in schema and instance != schema["const"]:
+        problems.append(f"{path}: expected {schema['const']!r}")
+    if "enum" in schema and instance not in schema["enum"]:
+        problems.append(f"{path}: {instance!r} is not one of {schema['enum']!r}")
+    if "type" in schema:
+        allowed = [schema["type"]] if isinstance(schema["type"], str) else schema["type"]
+        matches = any(
+            isinstance(instance, _TYPES[name])
+            and not (name == "integer" and isinstance(instance, bool))
+            for name in allowed
+        )
+        if not matches:
+            problems.append(f"{path}: expected {allowed}, got {type(instance).__name__}")
+            return problems
+    if schema.get("format") == "date" and isinstance(instance, str):
+        try:
+            date.fromisoformat(instance)
+        except ValueError:
+            problems.append(f"{path}: {instance!r} is not an ISO date")
+    if isinstance(instance, dict):
+        properties = schema.get("properties", {})
+        for key in schema.get("required", []):
+            if key not in instance:
+                problems.append(f"{path}: missing required key {key!r}")
+        if schema.get("additionalProperties") is False:
+            for key in set(instance) - set(properties):
+                problems.append(f"{path}: unexpected key {key!r}")
+        for key, value in instance.items():
+            if key in properties:
+                problems += _violations(value, properties[key], f"{path}.{key}")
+    if isinstance(instance, list) and "items" in schema:
+        for position, item in enumerate(instance):
+            problems += _violations(item, schema["items"], f"{path}[{position}]")
+    return problems
+
+
+def _data_and_schema(index: Path, output: Path) -> tuple[dict[str, Any], dict[str, Any]]:
+    build_site(index, output, stars=no_stars, built_on="2026-11-24")
+    data = json.loads((output / "index.json").read_text(encoding="utf-8"))
+    schema = json.loads((output / "index.schema.json").read_text(encoding="utf-8"))
+    return data, schema
+
+
+def _detailed_version() -> Version:
+    profile = ProfileCheck(
+        id="tool",
+        lifecycle="passed",
+        name="Tools",
+        description="A tool.",
+        kind="cli",
+        supported_python=("3.12",),
+        dependencies=("typer",),
+        security_posture="No service is contacted.",
+    )
+    return _version(checked_on=date(2026, 11, 24), profiles=(profile,))
+
+
+def test_index_json_carries_the_new_facts_and_validates_against_its_schema(
+    tmp_path: Path,
+) -> None:
+    index = _index(
+        tmp_path,
+        _detailed_version(),
+        name="Tools",
+        description="Useful tools",
+        categories=("cli", "ai"),
+        keywords=("typer",),
+    )
+
+    data, schema = _data_and_schema(index, tmp_path / "site")
+
+    pack = data["packs"][0]
+    assert data["format"] == 1
+    assert {"id": "cli", "label": "Command-line apps"} in data["categories"]
+    assert pack["categories"] == ["cli", "ai"]
+    assert pack["keywords"] == ["typer"]
+    assert pack["versions"][0]["checked_on"] == "2026-11-24"
+    assert pack["versions"][0]["profiles"][0]["dependencies"] == ["typer"]
+    assert _violations(data, schema) == []
+
+
+def test_index_schema_is_written_next_to_the_index(tmp_path: Path) -> None:
+    index = _index(tmp_path, _version())
+
+    _, schema = _data_and_schema(index, tmp_path / "site")
+
+    assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+    assert schema["properties"]["format"] == {"const": 1}
+
+
+def test_old_entries_without_the_new_fields_still_validate(tmp_path: Path) -> None:
+    index = _index(tmp_path, _version())
+
+    data, schema = _data_and_schema(index, tmp_path / "site")
+
+    assert data["packs"][0]["categories"] == []
+    assert data["packs"][0]["versions"][0]["checked_on"] is None
+    assert _violations(data, schema) == []
+
+
+def test_the_checker_reports_a_missing_key_an_extra_key_and_a_bad_value(tmp_path: Path) -> None:
+    index = _index(tmp_path, _detailed_version(), categories=("cli",))
+    data, schema = _data_and_schema(index, tmp_path / "site")
+    pack = data["packs"][0]
+    del pack["keywords"]
+    pack["surprise"] = True
+    pack["categories"] = ["gardening"]
+    pack["versions"][0]["profiles"][0]["kind"] = "plugin"
+
+    problems = _violations(data, schema)
+
+    assert "$.packs[0]: missing required key 'keywords'" in problems
+    assert "$.packs[0]: unexpected key 'surprise'" in problems
+    assert any("'gardening' is not one of" in problem for problem in problems)
+    assert any("'plugin' is not one of" in problem for problem in problems)
+
+
+def test_search_words_include_categories_and_keywords(tmp_path: Path) -> None:
+    index = _index(tmp_path, _version(), categories=("quant",), keywords=("backtest",))
+
+    _, page, _ = _build(index, tmp_path)
+
+    assert 'data-search="' in page
+    assert "quant backtest" in page
