@@ -96,12 +96,13 @@ def create_command(entry: Entry, version: Version, profile: str) -> str:
 
     The commit and digest make pytemplate-uv (3.1 or later) refuse a fetched pack if the tag moved
     or its files changed since the hub checked it; a cached copy is checked against the digest.
+    ``-y`` (3.2 or later; ``@latest`` guarantees it) accepts the defaults without prompting.
     """
     source = f"gh:{entry.owner}/{entry.repository_name}"
     return (
         f"uvx pytemplate-uv@latest create my-project -p {profile} "
         f"--template {source} --template-ref {version.tag} "
-        f"--template-commit {version.commit} --template-digest {version.digest} --no-input"
+        f"--template-commit {version.commit} --template-digest {version.digest} -y"
     )
 
 
