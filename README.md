@@ -89,7 +89,7 @@ page's `static/` files. The page is rendered with Jinja2 from the index, so the 
 separate data snapshot. Star counts come from GitHub at build time, and comments link to the
 source repository's issues, so the hub has no accounts. `--no-stars` builds without network access.
 Yanked versions stay in the JSON and leave the page. Each push to `main` publishes the site through
-`.github/workflows/pages.yml`, which runs no pack code. The website's
+[`.github/workflows/pages.yml`](.github/workflows/pages.yml), which runs no pack code. The website's
 plan and design are in [docs/site](docs/site/plan.md).
 
 ## Limits

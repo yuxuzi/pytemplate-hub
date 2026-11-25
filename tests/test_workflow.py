@@ -35,3 +35,32 @@ def test_workflow_refuses_review_claims_before_running_pack_code() -> None:
 
 def test_workflow_handles_a_base_with_no_index_yet() -> None:
     assert 'git cat-file -e "$BASE_SHA:index"' in _steps()
+
+
+PAGES = Path(__file__).parent.parent / ".github" / "workflows" / "pages.yml"
+
+
+def test_pages_workflow_runs_no_pack_code() -> None:
+    text = "\n".join(
+        line
+        for line in PAGES.read_text(encoding="utf-8").splitlines()
+        if not line.lstrip().startswith("#")
+    )
+
+    assert "run-lifecycle" not in text
+    assert "verify" not in text
+    assert "pytemplate_hub site" in text
+
+
+def test_pages_workflow_grants_only_what_publishing_needs() -> None:
+    text = "\n".join(
+        line
+        for line in PAGES.read_text(encoding="utf-8").splitlines()
+        if not line.lstrip().startswith("#")
+    )
+
+    assert "permissions:\n  contents: read\n" in text
+    assert "pages: write" in text
+    assert "id-token: write" in text
+    assert "secrets." not in text
+    assert "pull_request" not in text
