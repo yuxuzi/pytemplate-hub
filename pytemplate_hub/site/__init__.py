@@ -27,7 +27,7 @@ __all__ = [
     "StarSource",
     "build_site",
     "create_command",
-    "hub_command",
     "github_stars",
+    "hub_command",
     "no_stars",
 ]
