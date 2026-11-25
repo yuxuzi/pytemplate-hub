@@ -14,6 +14,7 @@ from pytemplate_hub.site.data import (
     build_site,
     create_command,
     github_stars,
+    hub_command,
     no_stars,
 )
 
@@ -27,5 +28,6 @@ __all__ = [
     "build_site",
     "create_command",
     "github_stars",
+    "hub_command",
     "no_stars",
 ]

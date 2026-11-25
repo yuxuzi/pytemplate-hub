@@ -40,7 +40,7 @@ bundled profiles don't fit, look on the hub.
 ## 2. Find a pack on the hub
 
 Every pack on the hub has a file in [`index/`](../index), named `index/<github-owner>/<pack-id>.toml`.
-The hub's page (built with `uv run pytemplate_hub site`) lists the same entries with search and a
+The hub's site, <https://yuxuzi.github.io/pytemplate-hub/>, lists the same entries with search and a
 ready command. Here is a listed entry:
 
 ```toml
@@ -86,7 +86,17 @@ uvx pytemplate-uv@latest plan --name hello-cli -p cli \
 
 ## 4. Create a project from the listing
 
-Use the command from the listing. It adds the commit and digest the hub checked:
+Use the short command from the listing. It names the pack and tag, and pytemplate-uv 3.5 or later
+reads the commit and digest the hub checked from the hub's index, then refuses the pack if they
+no longer match:
+
+```bash
+uvx pytemplate-uv@latest create hello-cli -h yuxuzi/pytemplate-starters@v1.0.0 -p cli -y
+```
+
+`-h` is `--hub`, and `--help` prints help. Without `-p` in a terminal, pytemplate-uv asks for the
+profile. For CI or offline use, the listing's fully pinned command gives the commit and digest
+yourself, and needs no index:
 
 ```bash
 uvx pytemplate-uv@latest create hello-cli -p cli \

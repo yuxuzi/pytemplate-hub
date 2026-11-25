@@ -54,10 +54,15 @@ TILES: tuple[dict[str, str], ...] = (
 
 @dataclass(frozen=True)
 class Command:
-    """The create command for one profile of a listed pack."""
+    """The create commands for one profile of a listed pack.
+
+    ``text`` is the short command (``-h``) the page shows first; ``pinned`` is the fully pinned
+    command for CI and offline use.
+    """
 
     profile: str
     text: str
+    pinned: str
 
 
 @dataclass(frozen=True)

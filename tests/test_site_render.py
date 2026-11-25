@@ -153,11 +153,12 @@ def test_category_tiles_count_the_listed_packs(tmp_path: Path) -> None:
     assert "1 listed" in web_tile
 
 
-def test_each_profile_has_a_copy_button_with_its_exact_command(tmp_path: Path) -> None:
+def test_each_profile_has_a_short_command_and_a_pinned_one(tmp_path: Path) -> None:
     entry = _entry(_version(), name="Tools")
     page = _build(_index(tmp_path, ("tools", entry)), tmp_path / "site")
 
-    command = (
+    short = "uvx pytemplate-uv@latest create my-project -h acme/tools@v1.0.0 -p tool -y"
+    pinned = (
         "uvx pytemplate-uv@latest create my-project -p tool --template gh:acme/repo "
         "--template-ref v1.0.0 --template-commit "
         + "a" * 40
@@ -165,8 +166,25 @@ def test_each_profile_has_a_copy_button_with_its_exact_command(tmp_path: Path) -
         + "b" * 64
         + " -y"
     )
-    assert f'data-copy="{command}"' in page
-    assert f"<pre><code>{command}</code></pre>" in page
+    assert f'data-copy="{short}"' in page
+    assert f"<pre><code>{short}</code></pre>" in page
+    assert f'data-copy="{pinned}"' in page
+    assert "Fully pinned (CI, offline)" in page
+
+
+def test_the_pinned_command_sits_in_a_details_block(tmp_path: Path) -> None:
+    page = _build(_index(tmp_path, ("tools", _entry(_version()))), tmp_path / "site")
+
+    details = page.split('<details class="pinned">', 1)[1].split("</details>", 1)[0]
+    assert "--template-digest" in details
+    assert "-h " not in details
+
+
+def test_the_hero_shows_the_short_command_of_the_first_pack(tmp_path: Path) -> None:
+    page = _build(_index(tmp_path, ("tools", _entry(_version()))), tmp_path / "site")
+
+    hero = page.split('id="slide-0"', 1)[1].split('id="slide-1"', 1)[0]
+    assert "create my-project -h acme/tools@v1.0.0 -p tool -y" in hero
 
 
 def test_scripts_only_show_and_hide_never_build_html() -> None:

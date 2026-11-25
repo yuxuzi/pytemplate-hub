@@ -70,7 +70,8 @@ day they ran.
 - Star counts are only as fresh as the last build. The Pages workflow rebuilds on each push to `main`, not on a schedule.
 - A pack's generated projects may install dependencies from moving sources, so a passing lifecycle
   result describes those sources as they were at check time.
-- The site's commands pass the listed commit and digest, so pytemplate-uv 3.1 or later refuses a pack
+- The site's short commands (`-h`, pytemplate-uv 3.5 or later) read the listed commit and digest from
+  the hub's index, and the fully pinned commands pass them directly, so pytemplate-uv 3.1 or later refuses a pack
   it fetches whose tag moved or whose files changed. A copy cached by an earlier pinned run is
   checked against the digest but not fetched again, so it still renders the listed files and notices
   a moved tag only on the next fetch (`--no-cache`). A command typed without `--template-commit` and
