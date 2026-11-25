@@ -7,7 +7,7 @@
 > replaces them), and the W1-W7 work steps that name a separate repository. The design, the site
 > map, the search and ranking rules, and the posts plan still apply.
 
-Status: draft for review, 2026-11-24. Nothing is built, deployed, or published yet. The design is
+Status: the site is built in the hub (`uv run pytemplate_hub site`), and `.github/workflows/pages.yml` publishes it. The Posts and Learn pages are future phases; the rest of this plan is the design. The design is
 in [`design/prototype.html`](design/prototype.html), a clickable prototype that uses the hub's
 real listings (also as a private page: <https://claude.ai/artifact/T3SLTtrLqG3pvYQLqbkAnb>).
 

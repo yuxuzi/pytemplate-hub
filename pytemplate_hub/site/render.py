@@ -2,7 +2,8 @@
 
 Every value from an entry is untrusted text. It reaches the page only through Jinja2 with
 autoescaping on, and no template uses the ``safe`` filter on entry data. The page's scripts only
-show and hide what the page already holds; they never build HTML from strings.
+show and hide what the page already holds; they never build HTML from strings. The page names no
+pack, publisher, or consumer: every pack on it comes from the index.
 """
 
 from __future__ import annotations
@@ -18,7 +19,20 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 PACKAGE_DIR = Path(__file__).resolve().parent
 TEMPLATE_DIR = PACKAGE_DIR / "templates"
 STATIC_DIR = PACKAGE_DIR / "static"
-STARTER_COUNT = 5
+NEWEST_COUNT = 5
+HUB_URL = "https://github.com/yuxuzi/pytemplate-hub"
+UV_URL = "https://github.com/yuxuzi/pytemplate-uv"
+LINKS: dict[str, str] = {
+    "tutorial": f"{HUB_URL}/blob/main/docs/tutorial.md",
+    "authors": f"{HUB_URL}/blob/main/docs/authors.md",
+    "trust": f"{HUB_URL}/blob/main/docs/trust.md",
+    "contributing": f"{HUB_URL}/blob/main/CONTRIBUTING.md",
+    "hub": HUB_URL,
+    "whats_new": f"{UV_URL}/blob/main/CHANGELOG.md",
+    "pytemplate_uv": UV_URL,
+    "pytemplate_uv_issues": f"{UV_URL}/issues",
+    "pypi": "https://pypi.org/project/pytemplate-uv/",
+}
 
 # The category tiles. Each id is a key of the hub's fixed vocabulary (categories.toml); a tile's
 # count is the number of listed packs that declare that category.
@@ -29,41 +43,12 @@ TILES: tuple[dict[str, str], ...] = (
         "id": "web",
         "label": "Web services and APIs",
         "glyph": "GET /",
-        "example": "FastAPI, service-sql",
+        "example": "FastAPI, service",
     },
-    {
-        "id": "worker",
-        "label": "Background workers",
-        "glyph": "retry()",
-        "example": "worker, worker-redis",
-    },
-    {"id": "data", "label": "Data pipelines", "glyph": "csv → pq", "example": "etl, etl-polars"},
-    {"id": "ai", "label": "AI tools and MCP", "glyph": "mcp", "example": "tools, tools-http"},
-    {
-        "id": "quant",
-        "label": "Quant research",
-        "glyph": "\u03b1 \u00b7 IC",
-        "example": "quant-research, alpha-research",
-    },
-)
-
-# Placeholder posts. Every one is a draft until the Posts phase (P3).
-POSTS: tuple[dict[str, str], ...] = (
-    {
-        "kind": "Release",
-        "title": "pytemplate-uv 3.3 finds packs on the hub",
-        "summary": "The skill searches the hub, and inspection commands take the pins.",
-    },
-    {
-        "kind": "Guide",
-        "title": "Why every command carries a commit and a digest",
-        "summary": "Pins make a generated project reproducible, and refusals make changes visible.",
-    },
-    {
-        "kind": "Packs",
-        "title": "Five starter packs to begin with",
-        "summary": "Small, typed starting points for a script, a CLI, a library, and more.",
-    },
+    {"id": "worker", "label": "Background workers", "glyph": "retry()", "example": "worker"},
+    {"id": "data", "label": "Data pipelines", "glyph": "csv → pq", "example": "etl"},
+    {"id": "ai", "label": "AI tools and MCP", "glyph": "mcp", "example": "tools, MCP servers"},
+    {"id": "quant", "label": "Quant research", "glyph": "\u03b1 \u00b7 IC", "example": "signals"},
 )
 
 
@@ -85,7 +70,9 @@ class Card:
     repository: str
     tag: str
     commit: str
+    digest: str
     license: str
+    checked_on: str | None
     tier: str
     tier_label: str
     facts: str
@@ -103,6 +90,12 @@ def _environment() -> Environment:
     )
 
 
+def newest(cards: Sequence[Card]) -> list[Card]:
+    """Return the most recently checked packs, newest first; packs with no date keep index order."""
+    ordered = sorted(cards, key=lambda card: card.checked_on or "", reverse=True)
+    return ordered[:NEWEST_COUNT]
+
+
 def render_index(cards: Sequence[Card], built_on: str) -> str:
     """Render the home page for the listed packs."""
     tiles: list[dict[str, Any]] = [
@@ -111,9 +104,10 @@ def render_index(cards: Sequence[Card], built_on: str) -> str:
     template = _environment().get_template("index.html")
     return template.render(
         categories=tiles,
-        posts=POSTS,
         cards=list(cards),
-        starter_packs=list(cards[:STARTER_COUNT]),
+        featured=cards[0] if cards else None,
+        newest_packs=newest(cards),
+        links=LINKS,
         built_on=built_on,
     )
 

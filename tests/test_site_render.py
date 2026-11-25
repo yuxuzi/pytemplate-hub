@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import date
 from html.parser import HTMLParser
 from pathlib import Path
 
@@ -189,3 +190,27 @@ def test_index_json_is_unchanged_in_shape(tmp_path: Path) -> None:
     assert data["format"] == 1
     assert data["built_on"] == "2026-11-25"
     assert data["packs"][0]["id"] == "tools"
+
+
+def test_the_page_names_no_consumer_and_no_draft(tmp_path: Path) -> None:
+    page = _build(_index(tmp_path, ("tools", _entry(_version(), name="Tools"))), tmp_path / "site")
+
+    assert "Quant-Agent-OS" not in page
+    assert "Draft" not in page
+    assert "gh:yuxuzi" not in page
+
+
+def test_the_spotlight_has_three_slides_labelled_in_order(tmp_path: Path) -> None:
+    page = _build(_index(tmp_path, ("tools", _entry(_version()))), tmp_path / "site")
+
+    assert page.count("data-slide") == 3
+    assert "1 of 3:" in page and "2 of 3:" in page and "3 of 3:" in page
+
+
+def test_newest_packs_are_the_most_recently_checked(tmp_path: Path) -> None:
+    older = _entry(_version(checked_on=date(2026, 11, 1)), name="Older pack")
+    newer = _entry(_version(checked_on=date(2026, 11, 20)), name="Newer pack")
+    page = _build(_index(tmp_path, ("older", older), ("newer", newer)), tmp_path / "site")
+
+    newest_block = page.split('aria-label="3 of 3', 1)[1].split("</section>", 1)[0]
+    assert newest_block.index("Newer pack") < newest_block.index("Older pack")

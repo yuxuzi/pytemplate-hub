@@ -1,4 +1,4 @@
-// Spotlight: four slides, each shown for 8 seconds (the tab's bar fills). It pauses on hover or
+// Spotlight: the slides in the page, each shown for 8 seconds (the tab's bar fills). It pauses on hover or
 // focus, and on the pause button. With prefers-reduced-motion it starts paused and does not move.
 const SLIDE_MS = 8000;
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
