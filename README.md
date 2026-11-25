@@ -52,7 +52,8 @@ uv run pytemplate_hub site --no-stars            # build the website into site/,
 `--run-lifecycle` also runs each profile's lifecycle commands. **That executes the pack's code**, so
 use it only on an isolated machine with no credentials.
 
-`site` writes the home page, the Learn pages, `index.json` (the same data for tools),
+`site` writes the home page, the catalog (`templates/`, with search, filters, and sorting), a page
+per pack with a command builder, the Learn pages, `index.json` (the same data for tools),
 `index.schema.json`, and the static files. Each push to `main` publishes it through
 [`.github/workflows/pages.yml`](.github/workflows/pages.yml), which runs no pack code.
 
