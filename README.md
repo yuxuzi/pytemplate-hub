@@ -46,8 +46,8 @@ profiles = [{ id = "tool", lifecycle = "passed", name = "Sample tool", descripti
 ```
 
 Each profile's details come from its own `profile.toml`. `dependencies` holds names only. Entries
-written before these fields existed still load, but `verify` reports them until the version is
-added again.
+written before these fields existed still load. `verify` skips a detail that an entry does not
+record, and checks every detail that it does record.
 
 Only contract 1 pytemplate packs at the root of a public GitHub repository can be listed.
 

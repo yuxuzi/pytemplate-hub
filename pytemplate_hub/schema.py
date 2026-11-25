@@ -120,18 +120,18 @@ class ProfileCheck(_Strict):
     """A profile that planned with its default answers, and whether its lifecycle ran.
 
     The details come from the profile's own ``profile.toml``. ``dependencies`` holds names only,
-    without version specifiers. An entry written before these details existed has the defaults,
-    so ``verify`` reports them until the version is added again.
+    without version specifiers. A detail set to None is one the entry does not record (an entry
+    written before it existed), and ``verify`` skips it; a recorded detail must still match.
     """
 
     id: Annotated[str, Field(pattern=PACK_ID.pattern)]
     lifecycle: Literal["passed", "not-run"]
-    name: Annotated[str, Field(max_length=NAME_MAX)] = ""
-    description: Annotated[str, Field(max_length=DESCRIPTION_MAX)] = ""
+    name: Annotated[str, Field(max_length=NAME_MAX)] | None = None
+    description: Annotated[str, Field(max_length=DESCRIPTION_MAX)] | None = None
     kind: Literal["cli", "library", "service"] | None = None
-    supported_python: tuple[PythonVersion, ...] = ()
-    dependencies: tuple[DependencyName, ...] = ()
-    security_posture: Annotated[str, Field(max_length=SECURITY_POSTURE_MAX)] = ""
+    supported_python: tuple[PythonVersion, ...] | None = None
+    dependencies: tuple[DependencyName, ...] | None = None
+    security_posture: Annotated[str, Field(max_length=SECURITY_POSTURE_MAX)] | None = None
 
 
 class Version(_Strict):
@@ -158,15 +158,16 @@ class Entry(_Strict):
     """A pack's source repository and its listed versions.
 
     ``categories`` must come from the fixed vocabulary in ``categories.toml``. ``keywords`` are
-    search words. Both are copied from the pack's manifest by ``add`` and checked by ``verify``.
+    search words. Both are copied from the pack's manifest by ``add`` and checked by ``verify``;
+    None means the entry does not record them, and ``verify`` skips them.
     """
 
     format: Literal[1] = 1
     repository: str
     name: Annotated[str, Field(max_length=NAME_MAX)] = ""
     description: Annotated[str, Field(max_length=DESCRIPTION_MAX)] = ""
-    categories: tuple[str, ...] = ()
-    keywords: tuple[str, ...] = ()
+    categories: tuple[str, ...] | None = None
+    keywords: tuple[str, ...] | None = None
     versions: tuple[Version, ...] = ()
 
     @model_validator(mode="after")
@@ -181,8 +182,10 @@ class Entry(_Strict):
                 f"repository name must not be '.' or '..', got {self.repository!r}. "
                 "Use the repository's own name."
             )
-        check_categories(self.categories)
-        check_keywords(self.keywords)
+        if self.categories is not None:
+            check_categories(self.categories)
+        if self.keywords is not None:
+            check_keywords(self.keywords)
         tags = [version.tag for version in self.versions]
         if len(tags) != len(set(tags)):
             raise ValueError("each tag may be listed only once")
@@ -237,9 +240,9 @@ def dump_entry(entry: Entry) -> str:
         for name, value in (("name", entry.name), ("description", entry.description))
         if value
     ]
-    if entry.categories:
+    if entry.categories is not None:
         lines.append(f"categories = {_array(entry.categories)}")
-    if entry.keywords:
+    if entry.keywords is not None:
         lines.append(f"keywords = {_array(entry.keywords)}")
     for version in entry.versions:
         lines += ["", "[[versions]]"]
@@ -276,15 +279,21 @@ def _array(values: tuple[str, ...]) -> str:
 
 
 def _profile(profile: ProfileCheck) -> str:
-    fields = [
+    fields: list[tuple[str, str | None]] = [
         ("id", _text(profile.id)),
         ("lifecycle", _text(profile.lifecycle)),
-        ("name", _text(profile.name)),
-        ("description", _text(profile.description)),
-        ("kind", _text(profile.kind) if profile.kind is not None else None),
-        ("supported_python", _array(profile.supported_python)),
-        ("dependencies", _array(profile.dependencies)),
-        ("security_posture", _text(profile.security_posture)),
+        ("name", None if profile.name is None else _text(profile.name)),
+        ("description", None if profile.description is None else _text(profile.description)),
+        ("kind", None if profile.kind is None else _text(profile.kind)),
+        (
+            "supported_python",
+            None if profile.supported_python is None else _array(profile.supported_python),
+        ),
+        ("dependencies", None if profile.dependencies is None else _array(profile.dependencies)),
+        (
+            "security_posture",
+            None if profile.security_posture is None else _text(profile.security_posture),
+        ),
     ]
     return "{ " + ", ".join(f"{name} = {value}" for name, value in fields if value) + " }"
 

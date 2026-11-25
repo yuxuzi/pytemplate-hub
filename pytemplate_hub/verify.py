@@ -341,7 +341,7 @@ def _verify_version(
         entry.repository, listed.tag, listed.license, fetcher, run_lifecycle=run_lifecycle
     )
     current = found.version
-    expected = [
+    expected: list[tuple[str, Any, Any]] = [
         ("commit", listed.commit, current.commit),
         ("digest", listed.digest, current.digest),
         ("pack version", listed.pack_version, current.pack_version),
@@ -372,10 +372,11 @@ def _verify_version(
             ("categories", entry.categories, found.categories),
             ("keywords", entry.keywords, found.keywords),
         ]
+    # A value the entry does not record (None) is skipped; a recorded value must match.
     return [
         f"{path} {listed.tag}: the {name} changed: listed {was}, found {now}."
         for name, was, now in expected
-        if was != now
+        if was is not None and was != now
     ]
 
 

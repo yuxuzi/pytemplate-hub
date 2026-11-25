@@ -27,6 +27,7 @@ _SCHEMA_DRAFT = "https://json-schema.org/draft/2020-12/schema"
 _TEXT: dict[str, Any] = {"type": "string"}
 _NULLABLE_TEXT: dict[str, Any] = {"type": ["string", "null"]}
 _TEXT_LIST: dict[str, Any] = {"type": "array", "items": {"type": "string"}}
+_NULLABLE_TEXT_LIST: dict[str, Any] = {"type": ["array", "null"], "items": {"type": "string"}}
 
 
 def _object(properties: dict[str, Any], *required: str) -> dict[str, Any]:
@@ -42,12 +43,12 @@ _PROFILE_SCHEMA = _object(
     {
         "id": _TEXT,
         "lifecycle": {"enum": ["passed", "not-run"]},
-        "name": _TEXT,
-        "description": _TEXT,
+        "name": _NULLABLE_TEXT,
+        "description": _NULLABLE_TEXT,
         "kind": {"enum": ["cli", "library", "service", None]},
-        "supported_python": _TEXT_LIST,
-        "dependencies": _TEXT_LIST,
-        "security_posture": _TEXT,
+        "supported_python": _NULLABLE_TEXT_LIST,
+        "dependencies": _NULLABLE_TEXT_LIST,
+        "security_posture": _NULLABLE_TEXT,
     },
     "id",
     "lifecycle",
@@ -91,8 +92,8 @@ _PACK_SCHEMA = _object(
         "repository": _TEXT,
         "name": _TEXT,
         "description": _TEXT,
-        "categories": {"type": "array", "items": {"enum": list(CATEGORIES)}},
-        "keywords": _TEXT_LIST,
+        "categories": {"type": ["array", "null"], "items": {"enum": list(CATEGORIES)}},
+        "keywords": _NULLABLE_TEXT_LIST,
         "stars": {"type": ["integer", "null"]},
         "latest": _NULLABLE_TEXT,
         "versions": {"type": "array", "items": _VERSION_SCHEMA},
@@ -248,8 +249,8 @@ def _pack_data(pack_id: str, entry: Entry, stars: int | None) -> dict[str, Any]:
         "repository": entry.repository,
         "name": entry.name,
         "description": entry.description,
-        "categories": list(entry.categories),
-        "keywords": list(entry.keywords),
+        "categories": None if entry.categories is None else list(entry.categories),
+        "keywords": None if entry.keywords is None else list(entry.keywords),
         "stars": stars,
         "latest": latest.tag if latest else None,
         "versions": [
@@ -264,7 +265,7 @@ def _card(entry: Entry, pack: dict[str, Any]) -> str:
     title = entry.name or pack["id"]
     identifier = f"{entry.owner}/{pack['id']}"
     profiles = " ".join(profile.id for profile in latest.profiles)
-    topics = " ".join((*entry.categories, *entry.keywords))
+    topics = " ".join((*(entry.categories or ()), *(entry.keywords or ())))
     words = f"{title} {identifier} {entry.description} {latest.license} {profiles} {topics}"
     words = words.lower()
     commands = "".join(

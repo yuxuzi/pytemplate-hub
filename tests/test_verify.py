@@ -436,25 +436,69 @@ def test_verify_reports_a_changed_profile_detail(detailed: GitFetcher, tmp_path:
     assert problems == [f"{path} v1.0.0: the profile tool kind changed: listed cli, found library."]
 
 
-def test_entry_without_profile_details_fails_until_it_is_added_again(
+def test_details_an_entry_does_not_record_are_not_checked(
     detailed: GitFetcher, tmp_path: Path
 ) -> None:
     path = _add(tmp_path / "index", detailed)
     entry = load_entry(path)
     bare = entry.model_copy(
         update={
+            "categories": None,
+            "keywords": None,
             "versions": (
                 entry.versions[0].model_copy(
-                    update={"profiles": (ProfileCheck(id="tool", lifecycle="not-run"),)}
+                    update={
+                        "checked_on": None,
+                        "profiles": (ProfileCheck(id="tool", lifecycle="not-run"),),
+                    }
                 ),
-            )
+            ),
         }
     )
     path.write_text(dump_entry(bare), encoding="utf-8")
 
+    assert verify_entry(path, detailed) == []
+
+
+def test_recorded_detail_still_fails_when_others_are_not_recorded(
+    detailed: GitFetcher, tmp_path: Path
+) -> None:
+    path = _add(tmp_path / "index", detailed)
+    entry = load_entry(path)
+    partly = entry.model_copy(
+        update={
+            "versions": (
+                entry.versions[0].model_copy(
+                    update={"profiles": (ProfileCheck(id="tool", lifecycle="passed", kind="cli"),)}
+                ),
+            ),
+        }
+    )
+    path.write_text(dump_entry(partly), encoding="utf-8")
+
     problems = verify_entry(path, detailed)
 
-    assert any("profile tool kind changed: listed None" in problem for problem in problems)
+    assert problems == [f"{path} v1.0.0: the profile tool kind changed: listed cli, found library."]
+
+
+def test_categories_and_keywords_an_entry_does_not_record_are_not_checked(
+    fetcher: GitFetcher, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = _add(tmp_path / "index", fetcher)
+    entry = load_entry(path)
+    path.write_text(
+        dump_entry(entry.model_copy(update={"categories": None, "keywords": None})),
+        encoding="utf-8",
+    )
+    real = verify.inspect_version
+
+    def with_categories(*args: object, **kwargs: object) -> Inspected:
+        found = real(*args, **kwargs)  # type: ignore[arg-type]
+        return dataclasses.replace(found, categories=("web",), keywords=("api",))
+
+    monkeypatch.setattr(verify, "inspect_version", with_categories)
+
+    assert verify_entry(path, fetcher) == []
 
 
 def test_add_refuses_a_profile_dependency_with_no_name(tmp_path: Path, pack_dir: Path) -> None:

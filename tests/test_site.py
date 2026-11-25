@@ -348,7 +348,7 @@ def test_old_entries_without_the_new_fields_still_validate(tmp_path: Path) -> No
 
     data, schema = _data_and_schema(index, tmp_path / "site")
 
-    assert data["packs"][0]["categories"] == []
+    assert data["packs"][0]["categories"] is None
     assert data["packs"][0]["versions"][0]["checked_on"] is None
     assert _violations(data, schema) == []
 

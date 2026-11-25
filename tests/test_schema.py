@@ -163,10 +163,11 @@ def test_entry_written_before_the_new_fields_still_loads(tmp_path: Path) -> None
 
     loaded = load_entry(path)
 
-    assert loaded.categories == ()
+    assert loaded.categories is None
+    assert loaded.keywords is None
     assert loaded.versions[0].checked_on is None
     assert loaded.versions[0].profiles[0].kind is None
-    assert loaded.versions[0].profiles[0].dependencies == ()
+    assert loaded.versions[0].profiles[0].dependencies is None
 
 
 @pytest.mark.parametrize(
