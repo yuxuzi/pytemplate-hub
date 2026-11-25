@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import os
 import shutil
 import stat
@@ -11,6 +10,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+from pytemplate import api
+
 from pytemplate_hub.errors import FetchError
 
 GIT_TIMEOUT_SECONDS = 300.0
@@ -18,22 +19,18 @@ SYMLINK_MODE = "120000"
 
 
 def directory_digest(root: Path) -> str:
-    """Return a SHA-256 over every file's relative path and bytes under ``root``.
+    """Return the pack digest of ``root``, computed by pytemplate-uv's ``api.pack_digest``.
 
-    Files are hashed in order of their path components, compared as case-sensitive strings, because
-    sorting paths directly ignores case on Windows and would change the result. Symlinks are
-    refused, since Copier would copy their targets into generated projects.
+    Using pytemplate-uv's own function keeps the hub's recorded digests equal to what
+    ``--template-digest`` and ``-h`` check. Symlinks are refused first, since Copier would copy
+    their targets into generated projects.
     """
-    digest = hashlib.sha256()
-    for path in sorted(root.rglob("*"), key=lambda item: item.relative_to(root).parts):
+    for path in root.rglob("*"):
         if path.is_symlink():
             raise FetchError(
                 f"The pack contains a symlink, which is not allowed: {path.relative_to(root)}"
             )
-        if path.is_file():
-            digest.update(path.relative_to(root).as_posix().encode() + b"\0")
-            digest.update(path.read_bytes() + b"\0")
-    return digest.hexdigest()
+    return api.pack_digest(root)
 
 
 def _remove_tree(root: Path) -> None:
