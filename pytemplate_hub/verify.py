@@ -398,7 +398,7 @@ def changed_claims(base: Path, index: Path) -> list[str]:
     for path in entry_files(base):
         relative = path.relative_to(base)
         if relative not in present:
-            problems.append(f"{relative}: deletes a whole entry; yank its versions instead.")
+            problems.append(f"{relative.as_posix()}: deletes a whole entry; yank its versions instead.")
     for path in entry_files(index):
         relative = path.relative_to(index)
         before = load_entry(base / relative) if (base / relative).is_file() else None
@@ -407,13 +407,13 @@ def changed_claims(base: Path, index: Path) -> list[str]:
         after = {version.tag for version in versions}
         for tag in listed:
             if tag not in after:
-                problems.append(f"{relative} {tag}: removes a listed version; yank it instead.")
+                problems.append(f"{relative.as_posix()} {tag}: removes a listed version; yank it instead.")
         for version in versions:
             old = listed.get(version.tag)
             if version.reviewed_by and (old is None or old.reviewed_by != version.reviewed_by):
-                problems.append(f"{relative} {version.tag}: adds a review claim.")
+                problems.append(f"{relative.as_posix()} {version.tag}: adds a review claim.")
             if old and _facts(old) != _facts(version):
-                problems.append(f"{relative} {version.tag}: changes a listed version's facts.")
+                problems.append(f"{relative.as_posix()} {version.tag}: changes a listed version's facts.")
     return problems
 
 
