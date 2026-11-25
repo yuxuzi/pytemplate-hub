@@ -49,6 +49,8 @@ A static, verified index of pytemplate-uv template packs. A typed Python 3.11+ p
 - Add or update tests with every behavior change, including the failure path.
 - Before reporting work as done, run the test, lint, format, and type-check commands above and report the real results.
 - Tests must not use the network or real credentials.
+- CI's test matrix runs a pull request on Ubuntu with Python 3.12 only. Label the final pull request
+  of a larger piece of work `full-ci` to run every OS and Python version, as each push to main does.
 
 ## Safety
 
