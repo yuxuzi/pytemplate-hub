@@ -8,9 +8,19 @@ published, and this repository is private. The name is provisional.
 
 ## Find a template
 
-Browse the entries in [`index/`](index), one file per pack, or build the searchable page with
-`uv run pytemplate_hub site`. Each listing gives a command pinned to the commit and digest the hub
-checked, so pytemplate-uv refuses the pack if anything changed since:
+Browse the packs on the [hub's site](https://yuxuzi.github.io/pytemplate-hub/), or the entries in
+[`index/`](index), one file per pack. Each listing gives a short command. pytemplate-uv 3.5 or later
+reads the commit and digest the hub checked for that tag, so it refuses the pack if anything changed
+since:
+
+```bash
+uvx pytemplate-uv@latest create my-app -h <owner>/<pack>@<tag> -p <profile> -y
+```
+
+`-h` is `--hub`; `--help` prints help. Without `-p` in a terminal, pytemplate-uv asks for the profile.
+
+For CI and offline use, the listing also gives the fully pinned form, which names the commit and
+digest yourself and needs no hub index:
 
 ```bash
 uvx pytemplate-uv@latest create my-app -p <profile> --template gh:<owner>/<pack> \
