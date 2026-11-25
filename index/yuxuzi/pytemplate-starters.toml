@@ -1,0 +1,13 @@
+format = 1
+repository = "https://github.com/yuxuzi/pytemplate-starters"
+name = "Python starters"
+description = "Small, typed starting points for a Python script, a command-line app, or a library, ready for uv and coding agents."
+
+[[versions]]
+tag = "v1.0.0"
+commit = "2886e570d1b964811e63b6aa93f3e0ede2e8e7d2"
+digest = "9257161472cfe280e79c7452ff0e01618b278ea57b7d74280b882976969de924"
+pack_version = "1.0.0"
+license = "MIT"
+checked_with = "pytemplate-uv==3.2.0"
+profiles = [{ id = "cli", lifecycle = "passed" }, { id = "library", lifecycle = "passed" }, { id = "script", lifecycle = "passed" }]

@@ -1,0 +1,13 @@
+format = 1
+repository = "https://github.com/yuxuzi/mcp-server"
+name = "MCP servers"
+description = "Model Context Protocol servers in Python that expose your own functions as typed tools to AI clients, with tests that call them in process."
+
+[[versions]]
+tag = "v1.0.0"
+commit = "4ba2f97f4449dd3360187d514b134c7f507c4ce1"
+digest = "7973a656422518f8cdc650ea9757e65bc9867bae93fc0779b293f81b9bcc0a48"
+pack_version = "1.0.0"
+license = "MIT"
+checked_with = "pytemplate-uv==3.2.0"
+profiles = [{ id = "tools", lifecycle = "passed" }, { id = "tools-http", lifecycle = "passed" }]

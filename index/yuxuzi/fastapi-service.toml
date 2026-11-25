@@ -1,0 +1,13 @@
+format = 1
+repository = "https://github.com/yuxuzi/fastapi-service"
+name = "FastAPI services"
+description = "Layered FastAPI services with health checks, settings, structured logs, and tests, with or without a SQL database."
+
+[[versions]]
+tag = "v1.0.0"
+commit = "162d0b5c08c4574d47109f04cfe525d50e892c59"
+digest = "5c129b562f6cf7445be534221c04e2fecb64e0f9bfc6c1a85fcd85d3d15a75cd"
+pack_version = "1.0.0"
+license = "MIT"
+checked_with = "pytemplate-uv==3.2.0"
+profiles = [{ id = "service", lifecycle = "passed" }, { id = "service-sql", lifecycle = "passed" }]
