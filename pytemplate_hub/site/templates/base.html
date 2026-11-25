@@ -5,25 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}Pytemplate Hub{% endblock %}</title>
 <meta name="description" content="{% block description %}Start a Python project from a template pack the hub checked at an exact commit.{% endblock %}">
-<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="{{ root }}static/favicon.svg" type="image/svg+xml">
 {# TODO: self-host the three font families under static/fonts/ so a visit makes no third-party requests. #}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Martian+Mono:wght@400;600;700&family=Schibsted+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="static/css/site.css">
-<script type="module" src="static/js/copy.js"></script>
-<script type="module" src="static/js/spotlight.js"></script>
-<script type="module" src="static/js/filter.js"></script>
+<link rel="stylesheet" href="{{ root }}static/css/site.css">
+<script type="module" src="{{ root }}static/js/copy.js"></script>
+{% block scripts %}{% endblock %}
 </head>
 <body>
 {% include "partials/sprite.html" %}
 <header class="site">
   <div class="wrap nav">
-    <a class="brand" href="index.html" aria-label="pytemplate home"><svg width="140" height="37" viewBox="0 0 244 64" aria-hidden="true"><use href="#i-logo"/></svg></a>
+    <a class="brand" href="{{ links.home }}" aria-label="pytemplate home"><svg width="140" height="37" viewBox="0 0 244 64" aria-hidden="true"><use href="#i-logo"/></svg></a>
     <nav class="navlinks" aria-label="Main">
-      <a href="#templates">Templates</a>
-      <a href="{{ links.tutorial }}">Learn</a>
-      <a href="{{ links.authors }}">Publish a pack</a>
+      <a href="{{ links.templates }}">Templates</a>
+      <a href="{{ links.learn }}"{% if current == "learn" %} aria-current="page"{% endif %}>Learn</a>
+      <a href="{{ links.authors }}"{% if current == "publish" %} aria-current="page"{% endif %}>Publish a pack</a>
     </nav>
     <div class="nav-end">
       <a class="icon-btn" href="{{ links.pytemplate_uv }}" rel="noopener" aria-label="pytemplate-uv on GitHub"><svg width="18" height="18" aria-hidden="true"><use href="#i-git"/></svg></a>
@@ -35,11 +34,11 @@
 </main>
 <footer><div class="wrap foot">
   <div>
-    <a class="brand" href="index.html"><svg width="140" height="37" viewBox="0 0 244 64" aria-hidden="true"><use href="#i-logo"/></svg></a>
-    <p class="fine">Built from the hub's index on {{ built_on }}. No accounts, no analytics, no third-party requests once the fonts are self-hosted.</p>
+    <a class="brand" href="{{ links.home }}"><svg width="140" height="37" viewBox="0 0 244 64" aria-hidden="true"><use href="#i-logo"/></svg></a>
+    <p class="fine">Built on {{ built_on }}. No accounts, no analytics, no third-party requests once the fonts are self-hosted.</p>
   </div>
   <div><h3 class="label">Projects</h3><ul><li><a href="{{ links.pytemplate_uv }}" rel="noopener">pytemplate-uv</a></li><li><a href="{{ links.pypi }}" rel="noopener">PyPI</a></li><li><a href="{{ links.hub }}" rel="noopener">pytemplate-hub</a></li></ul></div>
-  <div><h3 class="label">Learn</h3><ul><li><a href="{{ links.tutorial }}">Tutorial</a></li><li><a href="{{ links.trust }}">What the labels mean</a></li><li><a href="{{ links.authors }}">Author guide</a></li></ul></div>
+  <div><h3 class="label">Learn</h3><ul><li><a href="{{ links.tutorial }}">Tutorial</a></li><li><a href="{{ links.learn }}">All guides</a></li><li><a href="{{ links.trust }}">What the checks mean</a></li></ul></div>
   <div><h3 class="label">Community</h3><ul><li><a href="{{ links.authors }}">Publish a pack</a></li><li><a href="{{ links.pytemplate_uv_issues }}" rel="noopener">Issues</a></li><li><a href="{{ links.contributing }}" rel="noopener">Contribute to the hub</a></li></ul></div>
 </div></footer>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>

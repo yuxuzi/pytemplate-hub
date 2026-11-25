@@ -15,3 +15,7 @@ class FetchError(HubError):
 
 class PackCheckError(HubError):
     """A pack failed the checks required to be listed."""
+
+
+class SiteError(HubError):
+    """A page of the site could not be built from its source."""

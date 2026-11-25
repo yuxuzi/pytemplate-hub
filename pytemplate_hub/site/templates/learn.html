@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ page.title }} · Pytemplate Hub{% endblock %}
+{% block description %}{{ page.summary }}{% endblock %}
+{% block content %}
+<div class="wrap docs">
+  <nav class="docs-nav" aria-label="Guides">
+    <h2 class="label"><a href="{{ links.learn }}">Learn</a></h2>
+    <ul>
+      {% for item in pages %}
+      <li><a href="{{ item.href }}"{% if item.slug == page.slug %} aria-current="page"{% endif %}>{{ item.title }}</a></li>
+      {% endfor %}
+    </ul>
+  </nav>
+  <article class="prose">
+    {{ body }}
+    <p class="edit"><a href="{{ page.edit_url }}" rel="noopener">Edit this page on GitHub</a></p>
+  </article>
+  {% if headings %}
+  <nav class="docs-toc" aria-label="On this page">
+    <h2 class="label">On this page</h2>
+    <ul>
+      {% for heading in headings %}
+      <li><a href="#{{ heading.anchor }}">{{ heading.text }}</a></li>
+      {% endfor %}
+    </ul>
+  </nav>
+  {% endif %}
+</div>
+{% endblock %}

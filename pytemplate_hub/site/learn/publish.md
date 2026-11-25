@@ -1,14 +1,11 @@
-# List your pack
+# Publish a pack
 
 This guide is for pack authors. It shows how to list a pack in the hub without help from the
-maintainer. Read [trust.md](trust.md) for what the checks prove and what they do not.
+maintainer. Read [What the checks mean](trust.md) for what the checks prove and what they do not.
 
 ## 1. Check that your pack can be listed
 
-The pack format is defined by pytemplate-uv. Read its docs first:
-
-- Docs: <https://yuxuzi.github.io/pytemplate-uv>
-- Source: <https://github.com/yuxuzi/pytemplate-uv>
+The pack format is defined by pytemplate-uv: read [Template packs](packs.md#write-a-pack) first.
 
 A pack can be listed only when all of these are true:
 
@@ -45,7 +42,7 @@ A pack can be listed only when all of these are true:
   Packs that set `categories` or `keywords` need pytemplate-uv 3.4 or later. An older version
   refuses those keys, so `add` fails with `unknown key(s)`.
 
-The example pack in this repository is a minimal working pack. Use it as a reference for the layout:
+The hub's [example pack](https://github.com/yuxuzi/pytemplate-hub/tree/main/examples/sample-pack) is a minimal working pack. Use it as a reference for the layout:
 
 ```text
 examples/sample-pack/
@@ -66,8 +63,8 @@ examples/sample-pack/
 ```
 
 The profile `tool` is defined by `tool/profile.toml`, and its files live under `tool/template/`. The
-example's `copier.yml` and `questions.yml` are pytemplate-uv's format, so check them against its docs
-when you write your own.
+example's `copier.yml` and `questions.yml` are pytemplate-uv's format, so check them against
+[Template packs](packs.md#write-a-pack) when you write your own.
 
 ## 2. Tag a release
 
@@ -97,7 +94,8 @@ Replace `<you>` and `<pack>` with your GitHub owner and repository name.
 - `--index` is optional. It defaults to `index`, so the command writes
   `index/<you>/<pack-id>.toml`. The directory is your GitHub owner name in lowercase.
 
-`add` checks the tag and writes the entry. Open the file and read it before you commit.
+`add` checks the tag and writes the entry. Open the file and read it before you commit; the next
+section says what each field means.
 
 **Do not pass `--run-lifecycle` on your own machine.** That flag runs the pack's lifecycle commands,
 which executes the pack's code. Use it only on an isolated machine with no credentials. Without the
@@ -111,7 +109,37 @@ To try `add` without touching your fork's `index/` folder, point `--index` at a 
 uv run pytemplate_hub add https://github.com/<you>/<pack> --tag v1.0.0 --license MIT --index "$(mktemp -d)/index"
 ```
 
-## 4. Open the pull request
+## 4. Read the entry
+
+The entry binds each tag to the exact commit and file contents that were checked. Everything in it
+comes from your pack or from the check; you write none of it by hand:
+
+```toml
+# index/<github-owner>/<pack-id>.toml
+format = 1
+repository = "https://github.com/acme/sample-pack"
+name = "Sample pack"                     # from pytemplate-pack.toml, latest version
+description = "A small package."         # from pytemplate-pack.toml, latest version
+categories = ["cli", "library"]          # from pytemplate-pack.toml; the table above only
+keywords = ["starter", "tests"]          # from pytemplate-pack.toml; search words
+
+[[versions]]
+tag = "v1.0.0"
+commit = "<40-character commit SHA>"
+digest = "<SHA-256 over every file's path and bytes>"
+pack_version = "1.0.0"
+license = "MIT"                          # your --license declaration
+checked_with = "pytemplate-uv==3.5.0"    # the pytemplate-uv that checked it
+checked_on = 2026-11-24                  # the day add ran
+profiles = [{ id = "tool", lifecycle = "not-run", name = "Sample tool", description = "A small package.", kind = "library", supported_python = ["3.11", "3.12"], dependencies = ["pytest"], security_posture = "Rendering contacts no service." }]
+```
+
+Each profile's details come from its own `profile.toml`, and `dependencies` holds names only.
+Entries written before a field existed still load: `verify` skips a detail that an entry does not
+record, and checks every detail that it does record. Once the pull request is merged, the pack's
+users run `uvx pytemplate-uv@latest create my-app -h <you>/<pack>@v1.0.0 -y`.
+
+## 5. Open the pull request
 
 Commit only the new or changed entry file. Open a pull request against the hub's `main` branch. The
 pull request template lists the checks to confirm.
@@ -146,7 +174,7 @@ Reading the failures:
 
 Run `uv run pytemplate_hub verify` locally to see the same problems, without `--run-lifecycle`.
 
-## 5. Add a later version
+## 6. Add a later version
 
 Tag the new commit, for example `v1.1.0`, and push the tag. Then run `add` again with the new tag, and
 open a new pull request:
@@ -159,7 +187,7 @@ Earlier versions stay as they are. The latest version that is not yanked is the 
 description, categories, and keywords come from. Each version records `checked_on`, the day `add`
 ran.
 
-## 6. Yank a version
+## 7. Yank a version
 
 To stop showing a version, add a `yanked` reason to its block in the entry:
 
@@ -174,11 +202,11 @@ Only `reviewed_by` and `yanked` may change on a listed version, so this change p
 `check-claims`. `verify` does not re-check a yanked version. The hub has no `yank` command yet, so
 make this edit by hand in a pull request.
 
-## 7. What "reviewed" means
+## 8. What "reviewed" means
 
 `listed` means the automated checks passed at one commit. `reviewed` is a separate tier. It means a
 named maintainer read the diff at that commit and recorded `reviewed_by`.
 
 Authors cannot claim it. The check fails any pull request that adds `reviewed_by`, so a maintainer
 adds it on purpose, after reading the code. A listed pack is not a reviewed pack, and neither tier
-means the pack is safe. See [trust.md](trust.md).
+means the pack is safe. See [What the checks mean](trust.md).

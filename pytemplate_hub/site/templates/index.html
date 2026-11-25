@@ -1,4 +1,8 @@
 {% extends "base.html" %}
+{% block scripts %}
+<script type="module" src="{{ root }}static/js/spotlight.js"></script>
+<script type="module" src="{{ root }}static/js/filter.js"></script>
+{% endblock %}
 {% block content %}
 <section class="hero spot" id="spot" aria-roledescription="carousel" aria-label="Spotlight">
   <div class="wrap">

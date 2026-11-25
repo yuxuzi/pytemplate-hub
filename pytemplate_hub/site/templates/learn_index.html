@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Learn · Pytemplate Hub{% endblock %}
+{% block description %}The tutorial and the guides for pytemplate-uv and the hub.{% endblock %}
+{% block content %}
+<div class="wrap learn">
+  <header class="learn-head">
+    <h1>Learn</h1>
+    <p class="lede">Generate a project, find a pack, write your own, and list it. Start with the tutorial; the guides are the reference.</p>
+  </header>
+  <ul class="guides">
+    {% for item in pages %}
+    <li><a href="{{ item.href }}"><b>{{ item.title }}</b><span>{{ item.summary }}</span></a></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

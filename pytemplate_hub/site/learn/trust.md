@@ -1,7 +1,7 @@
-# Trust
+# What the checks mean
 
 This page is the single source for what the hub's checks prove, what they do not prove, and what a
-pack must provide. The [README](../README.md) shows a short version of the table below.
+pack must provide.
 
 ## What the checks mean
 
@@ -29,7 +29,7 @@ day they ran.
   any recorded fact of a listed version. Only `reviewed_by` and `yanked` may change on a listed
   version.
 - The verify CI job runs on pull requests that change `index/**`. It runs `check-claims` first, then
-  `verify --run-lifecycle`. See [authors.md](authors.md#4-open-the-pull-request) for how to read its
+  `verify --run-lifecycle`. See [Publish a pack](publish.md#5-open-the-pull-request) for how to read its
   failures.
 
 ## Rendering and lifecycle commands

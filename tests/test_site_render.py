@@ -108,17 +108,22 @@ def test_entry_text_is_escaped_everywhere(tmp_path: Path) -> None:
 
 def test_every_relative_link_and_asset_exists(tmp_path: Path) -> None:
     output = tmp_path / "site"
-    index = _index(tmp_path, ("tools", _entry(_version(), name="Tools")))
-    page = _parse(_build(index, output))
+    _build(_index(tmp_path, ("tools", _entry(_version(), name="Tools"))), output)
 
-    assert page.refs
-    for ref in page.refs:
-        if ref.startswith(("http://", "https://", "mailto:", "//")):
-            continue
-        if ref.startswith("#"):
-            assert ref[1:] in page.ids, f"fragment {ref} has no matching id"
-            continue
-        assert (output / ref).is_file(), f"{ref} is missing from the build"
+    pages = sorted(output.rglob("*.html"))
+    assert len(pages) > 1
+    for path in pages:
+        page = _parse(path.read_text(encoding="utf-8"))
+        assert page.refs, path
+        for ref in page.refs:
+            if ref.startswith(("http://", "https://", "mailto:", "//")):
+                continue
+            target, _, fragment = ref.partition("#")
+            linked = (path.parent / target).resolve() if target else path
+            assert linked.is_file(), f"{ref} on {path.relative_to(output)} is missing"
+            if fragment:
+                ids = _parse(linked.read_text(encoding="utf-8")).ids
+                assert fragment in ids, f"{ref} on {path.relative_to(output)} has no matching id"
 
 
 def test_every_page_has_a_title(tmp_path: Path) -> None:
