@@ -21,7 +21,7 @@ A static, verified index of pytemplate-uv template packs. A typed Python 3.11+ p
 - `pytemplate_hub/schema.py` — the index entry format.
 - `pytemplate_hub/fetch.py` — fetching a tag; the commit and digest. Uses git only.
 - `pytemplate_hub/verify.py` — listing checks, re-verification, and protected-field checks.
-- `pytemplate_hub/site/` — the static site: `data.py` (JSON, schema, stars, create command), `render.py` (Jinja2 pages), `learn.py` (Learn pages from Markdown), `learn/` (the Markdown: the tutorial and the guides), `templates/` and `static/` (shipped in the wheel). Entry text is untrusted: autoescape it, never `|safe`, and never build HTML in the page's script. Learn pages hold only the hub's own Markdown, rendered with raw HTML off.
+- `pytemplate_hub/site/` — the static site: `data.py` (JSON, schema, stars, create command), `render.py` (Jinja2 pages: home, the `templates/` catalog, a page per pack, Learn), `learn.py` (Learn pages from Markdown), `learn/` (the Markdown: the tutorial and the guides), `templates/` and `static/` (shipped in the wheel). Entry text is untrusted: autoescape it, never `|safe`, and never build HTML in the page's script; the catalog and builder scripts only show, hide, reorder, and count rendered elements, and set text and data attributes. Learn pages hold only the hub's own Markdown, rendered with raw HTML off.
 - `docs/` — maintainer documents only: the launch plan, the audit, and the website's plan and design.
 - `pytemplate_hub/cli.py` — Typer entry point; a thin layer over `verify` and `site`.
 - `examples/sample-pack/` — a trusted pack used by the tests.

@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block scripts %}
 <script type="module" src="{{ root }}static/js/spotlight.js"></script>
-<script type="module" src="{{ root }}static/js/filter.js"></script>
 {% endblock %}
 {% block content %}
 <section class="hero spot" id="spot" aria-roledescription="carousel" aria-label="Spotlight">
@@ -12,7 +11,7 @@
         <h1>Generate once. Own your code.</h1>
         <p class="lede">Start a Python project from a template pack the hub checked at an exact commit. Each listing gives one command, pinned to the files that passed, and the project is yours from the first commit.</p>
         <div class="ctas">
-          <a class="btn primary" href="#templates">Browse templates</a>
+          <a class="btn primary" href="{{ links.templates }}">Browse templates</a>
           <a class="btn" href="{{ links.tutorial }}">Start the tutorial</a>
         </div>
         <div class="quick">
@@ -47,11 +46,11 @@
       </div>
     </div>
 
-    <div class="slide" id="slide-1" data-slide role="tabpanel" aria-roledescription="slide" aria-label="2 of 3: New in 3.3" hidden>
+    <div class="slide" id="slide-1" data-slide role="tabpanel" aria-roledescription="slide" aria-label="2 of 3: New in 3.6" hidden>
       <div class="slide-copy">
-        <span class="eyebrow"><span class="dot"></span>Release · pytemplate-uv 3.3.0</span>
-        <h2 class="h1">Your coding agent finds packs on the hub.</h2>
-        <p class="lede">The <code>pytemplate</code> skill now looks on the hub when no bundled profile fits, shows each candidate's trust tier, waits for your choice, and pins the request to the listed commit and digest.</p>
+        <span class="eyebrow"><span class="dot"></span>Release · pytemplate-uv 3.6.0</span>
+        <h2 class="h1">One short command for any listed pack.</h2>
+        <p class="lede"><code>-h owner/pack@tag</code> reads the commit and digest the hub checked, and refuses the pack if anything changed. Every guide now lives on this site, under Learn.</p>
         <div class="ctas">
           <a class="btn primary" href="{{ links.whats_new }}" rel="noopener">What's new in pytemplate-uv</a>
           <a class="btn" href="{{ links.pypi }}" rel="noopener">pytemplate-uv on PyPI</a>
@@ -59,10 +58,11 @@
       </div>
       <div class="stage">
         <div class="release">
-          <div class="release-head"><b>pytemplate-uv</b><span class="pin">v3.3.0</span></div>
-          <div class="term"><pre><span class="t-p">$</span> pytemplate skill install --force
-<span class="t-p">$</span> uvx pytemplate-uv@latest list-profiles \
-    --template gh:acme/sample-pack --template-ref v1.0.0</pre></div>
+          <div class="release-head"><b>pytemplate-uv</b><span class="pin">v3.6.0</span></div>
+          <div class="term"><pre><span class="t-p">$</span> uvx pytemplate-uv@latest list-profiles \
+    -h acme/sample-pack@v1.0.0
+<span class="t-p">$</span> uvx pytemplate-uv@latest create my-app \
+    -h acme/sample-pack@v1.0.0 -p tool -y</pre></div>
         </div>
       </div>
     </div>
@@ -73,20 +73,20 @@
         <h2 class="h1">The newest packs, each checked.</h2>
         <p class="lede">The most recently checked packs on the hub. Each one gives a command that creates a project from its listed commit and digest.</p>
         <div class="ctas">
-          <a class="btn primary" href="#templates">See all templates</a>
+          <a class="btn primary" href="{{ links.templates }}">See all templates</a>
         </div>
       </div>
       <div class="stage">
         <div class="mini">
           {% for pack in newest_packs %}
-          <a href="#templates">
+          <a href="{{ pack.path }}index.html">
             <b>{{ pack.name }}</b>
             <span class="pin">{{ pack.tag }}</span>
             <span class="muted">{{ pack.description }}</span>
             <div class="chips">{% for command in pack.commands %}<span class="chip">{{ command.profile }}</span>{% endfor %}</div>
           </a>
           {% else %}
-          <a href="#templates"><b>No packs are listed yet.</b></a>
+          <a href="{{ links.templates }}"><b>No packs are listed yet.</b></a>
           {% endfor %}
         </div>
       </div>
@@ -95,7 +95,7 @@
     <div class="spot-nav">
       <div class="spot-tabs" role="tablist" aria-label="Spotlight slides">
         <button class="spot-tab" role="tab" type="button" id="tab-0" data-tab aria-controls="slide-0" aria-selected="true"><span class="bar"></span><small>01</small>Own your code</button>
-        <button class="spot-tab" role="tab" type="button" id="tab-1" data-tab aria-controls="slide-1" aria-selected="false" tabindex="-1"><span class="bar"></span><small>02</small>New in 3.3</button>
+        <button class="spot-tab" role="tab" type="button" id="tab-1" data-tab aria-controls="slide-1" aria-selected="false" tabindex="-1"><span class="bar"></span><small>02</small>New in 3.6</button>
         <button class="spot-tab" role="tab" type="button" id="tab-2" data-tab aria-controls="slide-2" aria-selected="false" tabindex="-1"><span class="bar"></span><small>03</small>Newest packs</button>
       </div>
       <button class="icon-btn" id="spot-pause" type="button" aria-pressed="false" aria-label="Pause the spotlight">
@@ -107,39 +107,21 @@
 </section>
 
 <section class="section" id="templates"><div class="wrap">
-  <div class="sec-head"><div><h2>What do you want to build?</h2><p>Each pack declares its categories in its own file. Counts are the listed packs in each category.</p></div><a href="#templates">All templates</a></div>
+  <div class="sec-head"><div><h2>What do you want to build?</h2><p>Each pack declares its categories in its own file. Counts are the listed packs in each category.</p></div><a href="{{ links.templates }}">All {{ cards|length }} templates</a></div>
+  <form class="toolbar home-search" role="search" action="{{ links.templates }}" method="get">
+    <div class="search">
+      <svg width="16" height="16" aria-hidden="true"><use href="#i-search"/></svg>
+      <input name="q" type="search" placeholder="Search templates: rest api, etl, agent tools, backtest…" aria-label="Search templates" autocomplete="off">
+    </div>
+    <button class="btn primary" type="submit">Search</button>
+  </form>
   <div class="tiles">
     {% for category in categories %}
-    <a class="tile" href="#templates" data-category="{{ category.id }}"><span class="glyph">{{ category.glyph }}</span><b>{{ category.label }}</b><span class="ex">{{ category.example }}</span><span class="count">{{ category.count }} listed</span></a>
+    <a class="tile{% if not category.count %} none{% endif %}" href="{{ links.templates }}?category={{ category.id }}" data-category="{{ category.id }}"><span class="glyph">{{ category.glyph }}</span><b>{{ category.label }}</b><span class="ex">{{ category.example }}</span><span class="count">{% if category.count %}{{ category.count }} listed{% else %}None yet{% endif %}</span></a>
     {% endfor %}
     <a class="tile ghost" href="#publish"><span class="glyph">+</span><b>Not here yet?</b><span class="ex">Publish the pack your team already uses.</span></a>
   </div>
-  <div class="controls">
-    <input id="search" type="search" placeholder="Search packs" aria-label="Search packs">
-    <label><input id="reviewed" type="checkbox"> Reviewed only</label>
-    <span id="count" class="note" role="status">Showing {{ cards|length }} of {{ cards|length }}</span>
-  </div>
-  <p class="note">Details as of {{ built_on }}. Each command pins the tag, commit, and digest the hub checked.</p>
-  <div class="packs">
-    {% for card in cards %}
-    <article class="pack" data-search="{{ card.search }}" data-tier="{{ card.tier }}">
-      <div class="head"><h3>{{ card.name }}</h3><span class="tier {{ card.tier }}">{{ card.tier_label }}</span></div>
-      <p class="id">{{ card.identifier }}</p>
-      <p class="description">{{ card.description }}</p>
-      <p class="facts" title="{{ card.commit }}">{{ card.facts }}</p>
-      {% for command in card.commands %}
-      <pre><code>{{ command.text }}</code></pre><button type="button" data-copy="{{ command.text }}" data-what="Command">Copy the {{ command.profile }} command</button>
-      <details class="pinned">
-        <summary>Fully pinned (CI, offline)</summary>
-        <pre><code>{{ command.pinned }}</code></pre><button type="button" data-copy="{{ command.pinned }}" data-what="Pinned command">Copy the pinned {{ command.profile }} command</button>
-      </details>
-      {% endfor %}
-      <p class="links"><a href="{{ card.repository }}" rel="noopener nofollow">Source</a> · <a href="{{ card.repository }}/issues" rel="noopener nofollow">Comments and issues</a></p>
-    </article>
-    {% else %}
-    <p>No packs are listed yet.</p>
-    {% endfor %}
-  </div>
+  <p class="note">{{ cards|length }} packs and {{ profile_count }} profiles, as of {{ built_on }}. Each command pins the tag, commit, and digest the hub checked.</p>
 </div></section>
 
 <section class="section" id="learn"><div class="wrap">

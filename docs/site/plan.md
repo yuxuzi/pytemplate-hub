@@ -7,7 +7,7 @@
 > replaces them), and the W1-W7 work steps that name a separate repository. The design, the site
 > map, the search and ranking rules, and the posts plan still apply.
 
-Status: the site is built in the hub (`uv run pytemplate_hub site`), and `.github/workflows/pages.yml` publishes it. The Learn pages are built (decision W3: the website owns the tutorial and the guides, for both projects, from `pytemplate_hub/site/learn/`; the repositories keep only READMEs that link to them). Posts are a future phase; the rest of this plan is the design. The design is
+Status: the site is built in the hub (`uv run pytemplate_hub site`), and `.github/workflows/pages.yml` publishes it. The Learn pages are built (decision W3: the website owns the tutorial and the guides, for both projects, from `pytemplate_hub/site/learn/`; the repositories keep only READMEs that link to them). The catalog (phase P2) is built too: `templates/` with facets, synonym search, the published ranking, and shareable addresses, and a page per pack with the command builder (Create, Preview first, and the pinned form for CI). Posts and semantic search are future phases; the rest of this plan is the design. The design is
 in [`design/prototype.html`](design/prototype.html), a clickable prototype that uses the hub's
 real listings (also as a private page: <https://claude.ai/artifact/T3SLTtrLqG3pvYQLqbkAnb>).
 
