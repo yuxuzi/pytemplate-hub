@@ -15,6 +15,7 @@ from pytemplate_hub.site import (
     build_site,
     create_command,
     github_stars,
+    hub_command,
     no_stars,
 )
 from pytemplate_hub.site.render import STATIC_DIR
@@ -149,6 +150,14 @@ def test_malformed_entry_fails_the_build(tmp_path: Path) -> None:
 def test_profile_ids_cannot_inject_into_the_copied_command(profile: str) -> None:
     with pytest.raises(ValueError, match="id"):
         ProfileCheck(id=profile, lifecycle="passed")
+
+
+def test_hub_command_is_exact() -> None:
+    entry = Entry(repository="https://github.com/Acme/repo")
+
+    command = hub_command(entry, "tools", _version(), "tool")
+
+    assert command == "uvx pytemplate-uv@latest create my-project -h acme/tools@v1.0.0 -p tool -y"
 
 
 def test_create_command_is_exact() -> None:

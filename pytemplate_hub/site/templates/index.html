@@ -125,6 +125,10 @@
       <p class="facts" title="{{ card.commit }}">{{ card.facts }}</p>
       {% for command in card.commands %}
       <pre><code>{{ command.text }}</code></pre><button type="button" data-copy="{{ command.text }}" data-what="Command">Copy the {{ command.profile }} command</button>
+      <details class="pinned">
+        <summary>Fully pinned (CI, offline)</summary>
+        <pre><code>{{ command.pinned }}</code></pre><button type="button" data-copy="{{ command.pinned }}" data-what="Pinned command">Copy the pinned {{ command.profile }} command</button>
+      </details>
       {% endfor %}
       <p class="links"><a href="{{ card.repository }}" rel="noopener nofollow">Source</a> · <a href="{{ card.repository }}/issues" rel="noopener nofollow">Comments and issues</a></p>
     </article>

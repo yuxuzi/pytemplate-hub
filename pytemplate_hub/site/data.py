@@ -164,6 +164,19 @@ def create_command(entry: Entry, version: Version, profile: str) -> str:
     )
 
 
+def hub_command(entry: Entry, pack_id: str, version: Version, profile: str) -> str:
+    """Return the short command: pytemplate-uv reads the pinned commit and digest from the hub.
+
+    ``-h`` (``--hub``, pytemplate-uv 3.5 or later) names the pack by its index path, ``owner/pack``,
+    and the tag. pytemplate-uv checks the commit and digest the hub lists for that tag exactly as
+    the fully pinned command does, so the short form is refused on the same terms.
+    """
+    return (
+        f"uvx pytemplate-uv@latest create my-project -h {entry.owner.lower()}/{pack_id}"
+        f"@{version.tag} -p {profile} -y"
+    )
+
+
 def build_site(index: Path, output: Path, *, stars: StarSource, built_on: str) -> int:
     """Write ``index.html``, ``index.json``, and ``index.schema.json``; return packs shown."""
     data: list[dict[str, Any]] = []
@@ -216,7 +229,11 @@ def _card(entry: Entry, pack_id: str, stars: int | None) -> Card:
         categories=tuple(entry.categories or ()),
         search=search.lower(),
         commands=tuple(
-            Command(profile=profile.id, text=create_command(entry, latest, profile.id))
+            Command(
+                profile=profile.id,
+                text=hub_command(entry, pack_id, latest, profile.id),
+                pinned=create_command(entry, latest, profile.id),
+            )
             for profile in latest.profiles
         ),
     )
