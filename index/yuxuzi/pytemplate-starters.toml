@@ -2,6 +2,8 @@ format = 1
 repository = "https://github.com/yuxuzi/pytemplate-starters"
 name = "Python starters"
 description = "Small, typed starting points for a Python script, a command-line app, or a library, ready for uv and coding agents."
+categories = ["cli", "library"]
+keywords = ["starter", "script", "cli", "library", "typer", "typed", "uv"]
 
 [[versions]]
 tag = "v1.0.0"
@@ -11,3 +13,13 @@ pack_version = "1.0.0"
 license = "MIT"
 checked_with = "pytemplate-uv==3.2.0"
 profiles = [{ id = "cli", lifecycle = "passed" }, { id = "library", lifecycle = "passed" }, { id = "script", lifecycle = "passed" }]
+
+[[versions]]
+tag = "v1.1.0"
+commit = "b5a0a8e485f069b1f3008b851aed37e9053cfa67"
+digest = "3d2ef5ab3b679d5e3e88eda9681d9408717c7c70a791b713d38c8d312ba4a7f9"
+pack_version = "1.1.0"
+license = "MIT"
+checked_with = "pytemplate-uv==3.6.0"
+checked_on = 2026-11-25
+profiles = [{ id = "cli", lifecycle = "passed", name = "Typer command-line app", description = "A Typer app with two subcommands, --version, plain output, and CliRunner tests.", kind = "cli", supported_python = ["3.11", "3.12", "3.13", "3.14", "3.15"], dependencies = ["typer"], security_posture = "No network access, secrets, or services are needed. The app reads only its command-line arguments. The checks do not scan dependencies or code for security problems." }, { id = "library", lifecycle = "passed", name = "Typed library", description = "A typed library for PyPI: py.typed, a small __all__ API, docstrings, a changelog, and a CI workflow for 3.11 and 3.13.", kind = "library", supported_python = ["3.11", "3.12", "3.13", "3.14", "3.15"], dependencies = [], security_posture = "No network access, secrets, or services are needed. The CI workflow uses GitHub Actions with read-only repository permissions. The checks do not scan dependencies or code for security problems." }, { id = "script", lifecycle = "passed", name = "Python script", description = "One package with a main() entry point, a console command, and one tested function. Standard library only.", kind = "cli", supported_python = ["3.11", "3.12", "3.13", "3.14", "3.15"], dependencies = [], security_posture = "Standard library only, with no network access, secrets, or services. The checks do not scan dependencies or code for security problems." }]
