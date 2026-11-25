@@ -1,0 +1,24 @@
+# The fixed category vocabulary. A pack declares categories from this list in
+# pytemplate-pack.toml; a category that is not here is refused. Adding one is a change to this
+# file, reviewed like any other change to the hub.
+
+[cli]
+label = "Command-line apps"
+
+[library]
+label = "Libraries"
+
+[web]
+label = "Web services and APIs"
+
+[worker]
+label = "Background workers"
+
+[data]
+label = "Data pipelines"
+
+[ai]
+label = "AI tools and MCP"
+
+[quant]
+label = "Quant research"

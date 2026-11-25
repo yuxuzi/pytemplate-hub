@@ -1,6 +1,8 @@
 """Tests for the listing checks and for re-verifying listed versions."""
 
 import dataclasses
+import re
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -143,19 +145,19 @@ def test_manifest_without_text_name_and_description_is_a_pack_error(
     ['description = "A pack"\n', 'name = "Tools"\n', "name = 7\ndescription = 'x'\n", "name = ["],
     ids=["missing-name", "missing-description", "not-text", "bad-toml"],
 )
-def test_manifest_text_reader_refuses_a_missing_or_bad_name(tmp_path: Path, manifest: str) -> None:
+def test_manifest_reader_refuses_a_missing_or_bad_name(tmp_path: Path, manifest: str) -> None:
     (tmp_path / "pytemplate-pack.toml").write_text(manifest, encoding="utf-8")
 
     with pytest.raises(PackCheckError, match=r"pytemplate-pack\.toml"):
-        verify._manifest_text(tmp_path)
+        verify._manifest(tmp_path)
 
 
-def test_manifest_text_reader_returns_name_and_description(tmp_path: Path) -> None:
+def test_manifest_reader_returns_name_and_description(tmp_path: Path) -> None:
     (tmp_path / "pytemplate-pack.toml").write_text(
         'name = "T"\ndescription = "D"\n', encoding="utf-8"
     )
 
-    assert verify._manifest_text(tmp_path) == ("T", "D")
+    assert verify._manifest(tmp_path) == ("T", "D", (), ())
 
 
 def test_missing_license_is_rejected(pack_dir: Path) -> None:
@@ -379,3 +381,193 @@ def test_yanking_a_version_is_not_reported(tmp_path: Path) -> None:
     _write_entry(head, Entry(repository=REPOSITORY, versions=(yanked,)))
 
     assert changed_claims(base, head) == []
+
+
+def _detail_pack(pack_dir: Path, dependencies: str = '"rich>=13.7", "typer[all]"') -> GitFetcher:
+    """Give the sample profile details, tag the pack, and return a fetcher for it."""
+    profile = pack_dir / "tool" / "profile.toml"
+    details = (
+        'supported_python = ["3.11", "3.12"]\n'
+        f"dependencies = [{dependencies}]\n"
+        'security_posture = "Rendering contacts no service."\n\n[dependency_groups]'
+    )
+    profile.write_text(
+        profile.read_text(encoding="utf-8").replace("[dependency_groups]", details),
+        encoding="utf-8",
+    )
+    git(pack_dir, "init", "--quiet", "-b", "main")
+    commit_all(pack_dir, "first")
+    git(pack_dir, "tag", "v1.0.0")
+    return GitFetcher(allowed_protocols="file", clone_url=lambda _: pack_dir.as_uri())
+
+
+@pytest.fixture
+def detailed(pack_dir: Path) -> GitFetcher:
+    return _detail_pack(pack_dir)
+
+
+def test_add_records_profile_details_and_the_check_date(
+    detailed: GitFetcher, tmp_path: Path
+) -> None:
+    path = _add(tmp_path / "index", detailed)
+
+    profile = load_entry(path).versions[0].profiles[0]
+
+    assert (profile.name, profile.kind) == ("Sample tool", "library")
+    assert profile.supported_python == ("3.11", "3.12")
+    assert profile.dependencies == ("rich", "typer")
+    assert profile.security_posture == "Rendering contacts no service."
+    assert load_entry(path).versions[0].checked_on == date.today()
+    assert "checked_on = " in path.read_text(encoding="utf-8")
+
+
+def test_verify_passes_right_after_add(detailed: GitFetcher, tmp_path: Path) -> None:
+    path = _add(tmp_path / "index", detailed)
+
+    assert verify_entry(path, detailed) == []
+
+
+def test_verify_reports_a_changed_profile_detail(detailed: GitFetcher, tmp_path: Path) -> None:
+    path = _add(tmp_path / "index", detailed)
+    path.write_text(path.read_text(encoding="utf-8").replace('kind = "library"', 'kind = "cli"'))
+
+    problems = verify_entry(path, detailed)
+
+    assert problems == [f"{path} v1.0.0: the profile tool kind changed: listed cli, found library."]
+
+
+def test_details_an_entry_does_not_record_are_not_checked(
+    detailed: GitFetcher, tmp_path: Path
+) -> None:
+    path = _add(tmp_path / "index", detailed)
+    entry = load_entry(path)
+    bare = entry.model_copy(
+        update={
+            "categories": None,
+            "keywords": None,
+            "versions": (
+                entry.versions[0].model_copy(
+                    update={
+                        "checked_on": None,
+                        "profiles": (ProfileCheck(id="tool", lifecycle="not-run"),),
+                    }
+                ),
+            ),
+        }
+    )
+    path.write_text(dump_entry(bare), encoding="utf-8")
+
+    assert verify_entry(path, detailed) == []
+
+
+def test_recorded_detail_still_fails_when_others_are_not_recorded(
+    detailed: GitFetcher, tmp_path: Path
+) -> None:
+    path = _add(tmp_path / "index", detailed)
+    entry = load_entry(path)
+    partly = entry.model_copy(
+        update={
+            "versions": (
+                entry.versions[0].model_copy(
+                    update={"profiles": (ProfileCheck(id="tool", lifecycle="passed", kind="cli"),)}
+                ),
+            ),
+        }
+    )
+    path.write_text(dump_entry(partly), encoding="utf-8")
+
+    problems = verify_entry(path, detailed)
+
+    assert problems == [f"{path} v1.0.0: the profile tool kind changed: listed cli, found library."]
+
+
+def test_categories_and_keywords_an_entry_does_not_record_are_not_checked(
+    fetcher: GitFetcher, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = _add(tmp_path / "index", fetcher)
+    entry = load_entry(path)
+    path.write_text(
+        dump_entry(entry.model_copy(update={"categories": None, "keywords": None})),
+        encoding="utf-8",
+    )
+    real = verify.inspect_version
+
+    def with_categories(*args: object, **kwargs: object) -> Inspected:
+        found = real(*args, **kwargs)  # type: ignore[arg-type]
+        return dataclasses.replace(found, categories=("web",), keywords=("api",))
+
+    monkeypatch.setattr(verify, "inspect_version", with_categories)
+
+    assert verify_entry(path, fetcher) == []
+
+
+def test_add_refuses_a_profile_dependency_with_no_name(tmp_path: Path, pack_dir: Path) -> None:
+    fetcher = _detail_pack(pack_dir, dependencies='">=1.0"')
+
+    with pytest.raises(PackCheckError, match="has no package name"):
+        _add(tmp_path / "index", fetcher)
+
+
+def test_add_copies_categories_and_keywords_from_the_pack(
+    fetcher: GitFetcher, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    real = verify.inspect_version
+
+    def with_categories(*args: object, **kwargs: object) -> Inspected:
+        found = real(*args, **kwargs)  # type: ignore[arg-type]
+        return dataclasses.replace(found, categories=("cli", "ai"), keywords=("polars",))
+
+    monkeypatch.setattr(verify, "inspect_version", with_categories)
+    path = _add(tmp_path / "index", fetcher)
+
+    entry = load_entry(path)
+    assert entry.categories == ("cli", "ai")
+    assert entry.keywords == ("polars",)
+    assert verify_entry(path, fetcher) == []
+
+
+def test_verify_reports_categories_and_keywords_that_the_pack_no_longer_has(
+    fetcher: GitFetcher, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = _add(tmp_path / "index", fetcher)
+    real = verify.inspect_version
+
+    def changed(*args: object, **kwargs: object) -> Inspected:
+        found = real(*args, **kwargs)  # type: ignore[arg-type]
+        return dataclasses.replace(found, categories=("web",), keywords=("api",))
+
+    monkeypatch.setattr(verify, "inspect_version", changed)
+
+    problems = verify_entry(path, fetcher)
+
+    assert f"{path} v1.0.0: the categories changed: listed (), found ('web',)." in problems
+    assert f"{path} v1.0.0: the keywords changed: listed (), found ('api',)." in problems
+
+
+@pytest.mark.parametrize(
+    ("manifest", "message"),
+    [
+        ('categories = ["gardening"]\n', "unknown category 'gardening'. Use one of: cli"),
+        ('categories = ["cli", "cli"]\n', "each category may be listed only once"),
+        ('categories = "cli"\n', "`categories` must be a list of text strings"),
+        ('keywords = ["Polars"]\n', "keyword 'Polars' is not allowed"),
+    ],
+)
+def test_manifest_refuses_a_bad_category_or_keyword(
+    tmp_path: Path, manifest: str, message: str
+) -> None:
+    (tmp_path / "pytemplate-pack.toml").write_text(
+        'name = "T"\ndescription = "D"\n' + manifest, encoding="utf-8"
+    )
+
+    with pytest.raises(PackCheckError, match=re.escape(message)):
+        verify._manifest(tmp_path)
+
+
+def test_manifest_reads_categories_and_keywords(tmp_path: Path) -> None:
+    (tmp_path / "pytemplate-pack.toml").write_text(
+        'name = "T"\ndescription = "D"\ncategories = ["web", "ai"]\nkeywords = ["fastapi"]\n',
+        encoding="utf-8",
+    )
+
+    assert verify._manifest(tmp_path) == ("T", "D", ("web", "ai"), ("fastapi",))

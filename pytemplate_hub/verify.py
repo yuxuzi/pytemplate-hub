@@ -9,9 +9,12 @@ import tempfile
 import tomllib
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import date
 from importlib.metadata import version as installed_version
 from pathlib import Path
+from typing import Any
 
+from pydantic import ValidationError
 from pytemplate import api
 
 from pytemplate_hub.errors import FetchError, HubError, PackCheckError
@@ -22,6 +25,9 @@ from pytemplate_hub.schema import (
     Entry,
     ProfileCheck,
     Version,
+    check_categories,
+    check_keywords,
+    dependency_name,
     dump_entry,
     entry_path,
     load_entry,
@@ -30,6 +36,16 @@ from pytemplate_hub.schema import (
 
 CHECK_PROJECT = "hub-check"
 PACK_MANIFEST = "pytemplate-pack.toml"
+PROFILE_MANIFEST = "profile.toml"
+# The profile fields that verify compares, besides the lifecycle result.
+PROFILE_DETAILS = (
+    "name",
+    "description",
+    "kind",
+    "supported_python",
+    "dependencies",
+    "security_posture",
+)
 LICENSE_FILES = ("LICENSE", "LICENSE.md", "LICENSE.txt", "COPYING")
 LIFECYCLE_TIMEOUT_SECONDS = 600.0
 # Programs a pack's lifecycle commands may start. `uv run` still runs the pack's own code, so
@@ -54,17 +70,21 @@ class PackCheck:
     pack_version: str
     name: str
     description: str
+    categories: tuple[str, ...]
+    keywords: tuple[str, ...]
     profiles: tuple[ProfileCheck, ...]
 
 
 @dataclass(frozen=True)
 class Inspected:
-    """A fetched and checked version, with the pack's own name and description."""
+    """A fetched and checked version, with the pack's own manifest facts."""
 
     pack_id: str
     name: str
     description: str
     version: Version
+    categories: tuple[str, ...] = ()
+    keywords: tuple[str, ...] = ()
 
 
 def run_program(
@@ -100,19 +120,24 @@ def check_pack(
         raise PackCheckError(f"The pack has no license file ({', '.join(LICENSE_FILES)}).")
     try:
         with api.open_catalog(str(root)) as (catalog, source, _):
-            identifiers = [profile.identifier for profile in catalog.profiles]
-        if not identifiers:
+            profiles = [(item.identifier, item.template_directory) for item in catalog.profiles]
+        if not profiles:
             raise PackCheckError("The pack has no profiles.")
-        checks = tuple(_check_profile(root, name, run_lifecycle, runner) for name in identifiers)
+        checks = tuple(
+            _check_profile(root, identifier, directory, run_lifecycle, runner)
+            for identifier, directory in profiles
+        )
     except _PACK_ERRORS as error:
         raise PackCheckError(f"The pack failed its checks: {error}") from error
     assert source.pack_id is not None and source.pack_version is not None  # set for every pack
-    name, description = _manifest_text(root)
-    return PackCheck(source.pack_id, source.pack_version, name, description, checks)
+    name, description, categories, keywords = _manifest(root)
+    return PackCheck(
+        source.pack_id, source.pack_version, name, description, categories, keywords, checks
+    )
 
 
-def _manifest_text(root: Path) -> tuple[str, str]:
-    """Return the pack's ``name`` and ``description``, or refuse with the fix to make."""
+def _manifest(root: Path) -> tuple[str, str, tuple[str, ...], tuple[str, ...]]:
+    """Return the pack's name, description, categories, and keywords, or refuse with the fix."""
     try:
         manifest = tomllib.loads((root / PACK_MANIFEST).read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as error:
@@ -122,10 +147,53 @@ def _manifest_text(root: Path) -> tuple[str, str]:
         raise PackCheckError(
             f"{PACK_MANIFEST} must set `name` and `description` as text strings. Add both keys."
         )
-    return name, description
+    categories = _text_list(manifest, "categories")
+    keywords = _text_list(manifest, "keywords")
+    try:
+        return name, description, check_categories(categories), check_keywords(keywords)
+    except ValueError as error:
+        raise PackCheckError(f"{PACK_MANIFEST}: {error}") from error
 
 
-def _check_profile(root: Path, profile: str, run_lifecycle: bool, runner: Runner) -> ProfileCheck:
+def _text_list(manifest: dict[str, Any], key: str) -> list[str]:
+    """Return an optional list of text strings from the manifest; absent means empty."""
+    values = manifest.get(key, [])
+    if not isinstance(values, list) or not all(isinstance(value, str) for value in values):
+        raise PackCheckError(f"{PACK_MANIFEST}: `{key}` must be a list of text strings.")
+    return values
+
+
+def _profile_details(root: Path, directory: str, profile: str) -> dict[str, Any]:
+    """Return a profile's details from its own ``profile.toml``, as the hub records them."""
+    path = root / directory / PROFILE_MANIFEST
+    try:
+        manifest = tomllib.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as error:
+        raise PackCheckError(
+            f"Profile {profile!r}: {PROFILE_MANIFEST} could not be read: {error}"
+        ) from error
+    dependencies: list[str] = []
+    for requirement in _text_list(manifest, "dependencies"):
+        name = dependency_name(requirement)
+        if name is None:
+            raise PackCheckError(
+                f"Profile {profile!r}: the dependency {requirement!r} has no package name."
+            )
+        dependencies.append(name)
+    return {
+        "name": manifest.get("name", ""),
+        "description": manifest.get("description", ""),
+        "kind": manifest.get("kind"),
+        "supported_python": tuple(_text_list(manifest, "supported_python")),
+        "dependencies": tuple(dependencies),
+        "security_posture": manifest.get("security_posture", ""),
+    }
+
+
+def _check_profile(
+    root: Path, profile: str, directory: str, run_lifecycle: bool, runner: Runner
+) -> ProfileCheck:
+    details = _profile_details(root, directory, profile)
     with tempfile.TemporaryDirectory(prefix="pytemplate-hub-") as scratch:
         request = api.RenderRequest(
             profile_id=profile,
@@ -136,7 +204,7 @@ def _check_profile(root: Path, profile: str, run_lifecycle: bool, runner: Runner
         )
         plan = api.plan(request)
         if not run_lifecycle:
-            return ProfileCheck(id=profile, lifecycle="not-run")
+            return _record(profile, "not-run", details)
         result = api.render(request)
         home = Path(scratch) / "home"
         home.mkdir()
@@ -148,7 +216,17 @@ def _check_profile(root: Path, profile: str, run_lifecycle: bool, runner: Runner
             succeeded, output = runner(command, result.project_path, environment)
             if not succeeded:
                 raise PackCheckError(f"Profile {profile!r}: `{line}` failed:\n{output[-1500:]}")
-    return ProfileCheck(id=profile, lifecycle="passed")
+    return _record(profile, "passed", details)
+
+
+def _record(profile: str, lifecycle: str, details: dict[str, Any]) -> ProfileCheck:
+    """Return the profile's record, refusing a profile.toml whose values the hub cannot hold."""
+    try:
+        return ProfileCheck(id=profile, lifecycle=lifecycle, **details)  # type: ignore[arg-type]
+    except ValidationError as error:
+        raise PackCheckError(
+            f"Profile {profile!r}: its profile.toml is not usable: {error}"
+        ) from error
 
 
 def _lifecycle_environment(home: Path) -> dict[str, str]:
@@ -180,7 +258,14 @@ def inspect_version(
         checked_with=f"pytemplate-uv=={installed_version('pytemplate-uv')}",
         profiles=check.profiles,
     )
-    return Inspected(check.pack_id, check.name, check.description, version)
+    return Inspected(
+        check.pack_id,
+        check.name,
+        check.description,
+        version,
+        check.categories,
+        check.keywords,
+    )
 
 
 def add_version(
@@ -216,11 +301,14 @@ def add_version(
             raise PackCheckError(f"{path} already lists this pack from {entry.repository}.")
         if any(listed.tag == tag for listed in entry.versions):
             raise PackCheckError(f"{path} already lists {tag}.")
+    listed = found.version.model_copy(update={"checked_on": date.today()})
     updated = Entry(
         repository=repository,
         name=found.name,
         description=found.description,
-        versions=(*entry.versions, found.version),
+        categories=found.categories,
+        keywords=found.keywords,
+        versions=(*entry.versions, listed),
     )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(dump_entry(updated), encoding="utf-8")
@@ -253,7 +341,7 @@ def _verify_version(
         entry.repository, listed.tag, listed.license, fetcher, run_lifecycle=run_lifecycle
     )
     current = found.version
-    expected = [
+    expected: list[tuple[str, Any, Any]] = [
         ("commit", listed.commit, current.commit),
         ("digest", listed.digest, current.digest),
         ("pack version", listed.pack_version, current.pack_version),
@@ -264,15 +352,31 @@ def _verify_version(
             sorted(profile.id for profile in current.profiles),
         ),
     ]
+    current_profiles = {profile.id: profile for profile in current.profiles}
+    for profile in listed.profiles:
+        now = current_profiles.get(profile.id)
+        if now is None:
+            continue  # the profile ids check already reports a missing profile
+        expected += [
+            (
+                f"profile {profile.id} {field}",
+                getattr(profile, field),
+                getattr(now, field),
+            )
+            for field in PROFILE_DETAILS
+        ]
     if listed == entry.latest:
         expected += [
             ("name", entry.name, found.name),
             ("description", entry.description, found.description),
+            ("categories", entry.categories, found.categories),
+            ("keywords", entry.keywords, found.keywords),
         ]
+    # A value the entry does not record (None) is skipped; a recorded value must match.
     return [
         f"{path} {listed.tag}: the {name} changed: listed {was}, found {now}."
         for name, was, now in expected
-        if was != now
+        if was is not None and was != now
     ]
 
 

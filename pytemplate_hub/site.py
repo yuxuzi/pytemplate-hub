@@ -1,4 +1,5 @@
-"""Build the static site from the index: one searchable page and a JSON copy of the data.
+"""Build the static site from the index: one searchable page, a JSON copy of the data, and the
+JSON Schema that describes that copy.
 
 Everything from an entry is untrusted text: the page escapes it, and its script never builds HTML.
 """
@@ -13,11 +14,122 @@ from html import escape
 from pathlib import Path
 from typing import Any
 
-from pytemplate_hub.schema import Entry, Version, load_entry
+from pytemplate_hub.schema import CATEGORIES, Entry, Version, load_entry
 from pytemplate_hub.verify import entry_files
 
 STARS_TIMEOUT_SECONDS = 15.0
 StarSource = Callable[[Entry], int | None]
+INDEX_FORMAT = 1
+INDEX_FILE = "index.json"
+SCHEMA_FILE = "index.schema.json"
+
+_SCHEMA_DRAFT = "https://json-schema.org/draft/2020-12/schema"
+_TEXT: dict[str, Any] = {"type": "string"}
+_NULLABLE_TEXT: dict[str, Any] = {"type": ["string", "null"]}
+_TEXT_LIST: dict[str, Any] = {"type": "array", "items": {"type": "string"}}
+_NULLABLE_TEXT_LIST: dict[str, Any] = {"type": ["array", "null"], "items": {"type": "string"}}
+
+
+def _object(properties: dict[str, Any], *required: str) -> dict[str, Any]:
+    return {
+        "type": "object",
+        "properties": properties,
+        "required": list(required),
+        "additionalProperties": False,
+    }
+
+
+_PROFILE_SCHEMA = _object(
+    {
+        "id": _TEXT,
+        "lifecycle": {"enum": ["passed", "not-run"]},
+        "name": _NULLABLE_TEXT,
+        "description": _NULLABLE_TEXT,
+        "kind": {"enum": ["cli", "library", "service", None]},
+        "supported_python": _NULLABLE_TEXT_LIST,
+        "dependencies": _NULLABLE_TEXT_LIST,
+        "security_posture": _NULLABLE_TEXT,
+    },
+    "id",
+    "lifecycle",
+    "name",
+    "description",
+    "kind",
+    "supported_python",
+    "dependencies",
+    "security_posture",
+)
+_VERSION_SCHEMA = _object(
+    {
+        "tag": _TEXT,
+        "commit": _TEXT,
+        "digest": _TEXT,
+        "pack_version": _TEXT,
+        "license": _TEXT,
+        "checked_with": _TEXT,
+        "checked_on": {"type": ["string", "null"], "format": "date"},
+        "profiles": {"type": "array", "items": _PROFILE_SCHEMA},
+        "reviewed_by": _NULLABLE_TEXT,
+        "yanked": _NULLABLE_TEXT,
+        "tier": {"enum": ["listed", "reviewed"]},
+    },
+    "tag",
+    "commit",
+    "digest",
+    "pack_version",
+    "license",
+    "checked_with",
+    "checked_on",
+    "profiles",
+    "reviewed_by",
+    "yanked",
+    "tier",
+)
+_PACK_SCHEMA = _object(
+    {
+        "id": _TEXT,
+        "owner": _TEXT,
+        "repository": _TEXT,
+        "name": _TEXT,
+        "description": _TEXT,
+        "categories": {"type": ["array", "null"], "items": {"enum": list(CATEGORIES)}},
+        "keywords": _NULLABLE_TEXT_LIST,
+        "stars": {"type": ["integer", "null"]},
+        "latest": _NULLABLE_TEXT,
+        "versions": {"type": "array", "items": _VERSION_SCHEMA},
+    },
+    "id",
+    "owner",
+    "repository",
+    "name",
+    "description",
+    "categories",
+    "keywords",
+    "stars",
+    "latest",
+    "versions",
+)
+
+INDEX_SCHEMA: dict[str, Any] = {
+    "$schema": _SCHEMA_DRAFT,
+    "title": "pytemplate-hub index.json",
+    "description": "The data behind the hub's site. Every string comes from pack authors.",
+    **_object(
+        {
+            "format": {"const": INDEX_FORMAT},
+            "built_on": {"type": "string", "format": "date"},
+            "categories": {
+                "type": "array",
+                "items": _object({"id": _TEXT, "label": _TEXT}, "id", "label"),
+            },
+            "packs": {"type": "array", "items": _PACK_SCHEMA},
+        },
+        "format",
+        "built_on",
+        "categories",
+        "packs",
+    ),
+}
 
 _STYLE = """
 :root { color-scheme: light dark; --bg: #f7f7f5; --card: #fff; --text: #1d1d1b; --muted: #5f5f5a;
@@ -107,7 +219,7 @@ def create_command(entry: Entry, version: Version, profile: str) -> str:
 
 
 def build_site(index: Path, output: Path, *, stars: StarSource, built_on: str) -> int:
-    """Write ``index.html`` and ``index.json`` to ``output``; return how many packs are shown."""
+    """Write ``index.html``, ``index.json``, and ``index.schema.json``; return packs shown."""
     data: list[dict[str, Any]] = []
     cards: list[str] = []
     for path in entry_files(index):
@@ -118,8 +230,14 @@ def build_site(index: Path, output: Path, *, stars: StarSource, built_on: str) -
             cards.append(_card(entry, pack))
     output.mkdir(parents=True, exist_ok=True)
     (output / "index.html").write_text(_page(cards, built_on), encoding="utf-8")
-    payload = {"format": 1, "built_on": built_on, "packs": data}
-    (output / "index.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    payload = {
+        "format": INDEX_FORMAT,
+        "built_on": built_on,
+        "categories": [{"id": key, "label": label} for key, label in CATEGORIES.items()],
+        "packs": data,
+    }
+    (output / INDEX_FILE).write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    (output / SCHEMA_FILE).write_text(json.dumps(INDEX_SCHEMA, indent=2) + "\n", encoding="utf-8")
     return len(cards)
 
 
@@ -131,6 +249,8 @@ def _pack_data(pack_id: str, entry: Entry, stars: int | None) -> dict[str, Any]:
         "repository": entry.repository,
         "name": entry.name,
         "description": entry.description,
+        "categories": None if entry.categories is None else list(entry.categories),
+        "keywords": None if entry.keywords is None else list(entry.keywords),
         "stars": stars,
         "latest": latest.tag if latest else None,
         "versions": [
@@ -145,7 +265,9 @@ def _card(entry: Entry, pack: dict[str, Any]) -> str:
     title = entry.name or pack["id"]
     identifier = f"{entry.owner}/{pack['id']}"
     profiles = " ".join(profile.id for profile in latest.profiles)
-    words = f"{title} {identifier} {entry.description} {latest.license} {profiles}".lower()
+    topics = " ".join((*(entry.categories or ()), *(entry.keywords or ())))
+    words = f"{title} {identifier} {entry.description} {latest.license} {profiles} {topics}"
+    words = words.lower()
     commands = "".join(
         f"<pre><code>{escape(create_command(entry, latest, profile.id))}</code></pre>"
         for profile in latest.profiles
