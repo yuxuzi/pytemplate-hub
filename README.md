@@ -31,6 +31,8 @@ format = 1
 repository = "https://github.com/acme/sample-pack"
 name = "Sample pack"
 description = "From the pack's manifest; verify compares it with the latest version."
+categories = ["cli", "library"]          # from pytemplate_hub/categories.toml only
+keywords = ["starter", "tests"]           # search words
 
 [[versions]]
 tag = "v1.0.0"
@@ -39,8 +41,13 @@ digest = "<SHA-256 over every file's path and bytes>"
 pack_version = "1.0.0"
 license = "MIT"
 checked_with = "pytemplate-uv==3.0.0"
-profiles = [{ id = "tool", lifecycle = "passed" }]
+checked_on = 2026-11-24                  # the day add ran
+profiles = [{ id = "tool", lifecycle = "passed", name = "Sample tool", description = "A small package.", kind = "library", supported_python = ["3.11", "3.12"], dependencies = ["pytest"], security_posture = "Rendering contacts no service." }]
 ```
+
+Each profile's details come from its own `profile.toml`. `dependencies` holds names only. Entries
+written before these fields existed still load, but `verify` reports them until the version is
+added again.
 
 Only contract 1 pytemplate packs at the root of a public GitHub repository can be listed.
 
@@ -76,7 +83,8 @@ Contributors to the hub's code should read [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## The site
 
-`site` writes one page with search and a reviewed-only filter, plus the same data as JSON. Star counts
+`site` writes one page with search and a reviewed-only filter, the same data as `index.json`, and
+`index.schema.json`, a JSON Schema that describes `index.json`. Star counts
 come from GitHub at build time, and comments link to the source repository's issues, so the hub has
 no accounts. `--no-stars` builds without network access. Yanked versions stay in the JSON and leave the
 page.

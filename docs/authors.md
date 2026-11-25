@@ -23,6 +23,27 @@ A pack can be listed only when all of these are true:
   refuse them.
 - Its lifecycle commands start with `uv`, for example `uv sync` and `uv run pytest`. Other programs
   are refused.
+- Each profile's `profile.toml` sets `name`, `description`, and `kind` (`cli`, `library`, or
+  `service`). It may also set `supported_python`, `dependencies`, and `security_posture`. The hub
+  records these and checks them on every `verify`. Dependencies are recorded by name only.
+- `pytemplate-pack.toml` may set two optional lists for the hub. `categories` takes ids from this
+  table, and `keywords` takes up to 12 search words of up to 30 lowercase characters:
+
+  | id | Label |
+  | --- | --- |
+  | `cli` | Command-line apps |
+  | `library` | Libraries |
+  | `web` | Web services and APIs |
+  | `worker` | Background workers |
+  | `data` | Data pipelines |
+  | `ai` | AI tools and MCP |
+  | `quant` | Quant research |
+
+  The hub records the categories. A category not in this table is refused. A new category needs a
+  change to `pytemplate_hub/categories.toml` in a pull request to the hub.
+
+  Today pytemplate-uv refuses any key that its own pack manifest does not know, so a pack that sets
+  `categories` or `keywords` fails `add` with `unknown key(s)` until pytemplate-uv accepts them.
 
 The example pack in this repository is a minimal working pack. Use it as a reference for the layout:
 
@@ -114,6 +135,9 @@ Reading the failures:
 | `changes a listed version's facts` | You edited a recorded field | Revert the edit. For a change, publish a new tag. |
 | `the commit changed` or `the digest changed` | The tag moved, or its files changed | Publish a new tag, and list it. Never move a listed tag. |
 | `the pack version changed`, `the pack id changed`, or `the profiles changed` | The pack's manifest or profiles differ from the entry | Restore the tag's values, or publish a new tag and list it. |
+| `the profile <id> <field> changed`, `the categories changed`, or `the keywords changed` | The profile's `profile.toml`, or the pack's categories or keywords, differ from the entry | Restore the tag's values, or publish a new tag and list it. An entry from before these details were recorded shows `listed None` or empty values; the hub maintainer adds that version again. |
+| `unknown category` | A category is not in the table in this guide | Use one of the listed ids. |
+| `unknown key(s) categories` or `unknown key(s) keywords` | pytemplate-uv does not accept the key yet | Remove the key until pytemplate-uv accepts it, then tag and list again. |
 | `has no license file` | No license file at the root | Add the file, push a new tag, and list it. |
 | `has no profiles` or `The pack failed its checks` | The pack does not render, or it is not a contract 1 pack | Fix the pack, push a new tag, and list it. |
 | `failed:` followed by command output | A lifecycle command failed with default answers | Run the same command in an empty directory to reproduce it. |
@@ -131,8 +155,9 @@ open a new pull request:
 uv run pytemplate_hub add https://github.com/<you>/<pack> --tag v1.1.0 --license MIT
 ```
 
-Earlier versions stay as they are. The latest version that is not yanked is the one the name and
-description come from.
+Earlier versions stay as they are. The latest version that is not yanked is the one the name,
+description, categories, and keywords come from. Each version records `checked_on`, the day `add`
+ran.
 
 ## 6. Yank a version
 
