@@ -66,15 +66,20 @@ Read the pack's repository first. Rendering is safe (Copier runs with `unsafe=Fa
 refuses packs with tasks, migrations, Jinja extensions, or symlinks), but **the generated project
 runs code when you use it**: its build backend, dependencies, and tests.
 
-Then ask pytemplate-uv what the pack offers and what it would write. Neither command writes
-anything:
+Then ask pytemplate-uv what the pack offers and what it would write. Pass the listing's commit
+and digest here too (pytemplate-uv 3.3 or later), so you inspect exactly the files the hub checked.
+Neither command writes anything:
 
 ```bash
 uvx pytemplate-uv@latest list-profiles \
-  --template gh:yuxuzi/pytemplate-starters --template-ref v1.0.0
+  --template gh:yuxuzi/pytemplate-starters --template-ref v1.0.0 \
+  --template-commit 2886e570d1b964811e63b6aa93f3e0ede2e8e7d2 \
+  --template-digest 9257161472cfe280e79c7452ff0e01618b278ea57b7d74280b882976969de924
 
 uvx pytemplate-uv@latest plan --name hello-cli -p cli \
-  --template gh:yuxuzi/pytemplate-starters --template-ref v1.0.0
+  --template gh:yuxuzi/pytemplate-starters --template-ref v1.0.0 \
+  --template-commit 2886e570d1b964811e63b6aa93f3e0ede2e8e7d2 \
+  --template-digest 9257161472cfe280e79c7452ff0e01618b278ea57b7d74280b882976969de924
 ```
 
 `plan` lists the files and the dependencies the project would get.
@@ -102,6 +107,8 @@ Error: Template pack 'gh:yuxuzi/pytemplate-starters' at v1.0.0 has digest 9257â€
 ```
 
 A command with only `--template-ref` fetches whatever the tag points to today. Keep the pins.
+A pinned pack is cached after the first fetch and checked against the digest on every use; pass
+`--no-cache` to fetch it again.
 
 The project is yours from the first commit. `.pytemplate.toml` records the pack, its commit, your
 answers, and a hash of every generated file, so `uvx pytemplate-uv@latest status` later lists the
