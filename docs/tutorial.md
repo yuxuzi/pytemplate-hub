@@ -98,8 +98,8 @@ uv sync
 uv run pytest
 ```
 
-With the pins, pytemplate-uv refuses the pack if the tag was moved or any file changed since the
-hub checked it, and writes nothing:
+With the pins, pytemplate-uv refuses a fetched pack if the tag was moved or any file changed since
+the hub checked it, and writes nothing:
 
 ```text
 Error: Template pack 'gh:yuxuzi/pytemplate-starters' at v1.0.0 has digest 9257â€¦, not the pinned
@@ -107,8 +107,8 @@ Error: Template pack 'gh:yuxuzi/pytemplate-starters' at v1.0.0 has digest 9257â€
 ```
 
 A command with only `--template-ref` fetches whatever the tag points to today. Keep the pins.
-A pinned pack is cached after the first fetch and checked against the digest on every use; pass
-`--no-cache` to fetch it again.
+A pinned pack is cached after the first fetch and checked against the digest on every use, so it
+always renders the listed files; pass `--no-cache` to fetch it again and check the tag too.
 
 The project is yours from the first commit. `.pytemplate.toml` records the pack, its commit, your
 answers, and a hash of every generated file, so `uvx pytemplate-uv@latest status` later lists the
@@ -183,6 +183,9 @@ version to the same file.
 `--run-lifecycle` also runs each profile's lifecycle commands, which **executes the pack's code**.
 Use it only on an isolated machine with no credentials.
 
+[List your pack](authors.md) has the details: what CI reports, later versions, yanking, and what
+"reviewed" means.
+
 ## 7. Work with a coding agent
 
 pytemplate-uv ships a skill that teaches Claude Code and other agents to choose a profile, check
@@ -200,4 +203,5 @@ include an `AGENTS.md` that tells the agent the project's commands and rules.
 
 - [pytemplate-uv's README](https://github.com/yuxuzi/pytemplate-uv#readme): every command and option.
 - [What the checks mean](../README.md#what-the-checks-mean), before you rely on a listing.
-- [Contributing](../README.md#contributing): improve the hub itself.
+- [List your pack](authors.md): the full guide for pack authors.
+- [Contributing](../CONTRIBUTING.md): improve the hub itself.

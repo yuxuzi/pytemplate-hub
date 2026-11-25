@@ -82,7 +82,9 @@ page.
 - A pack's generated projects may install dependencies from moving sources, so a passing lifecycle
   result describes those sources as they were at check time.
 - The site's commands pass the listed commit and digest, so pytemplate-uv 3.1 or later refuses a pack
-  whose tag moved or whose files changed. A command typed without `--template-commit` and
+  it fetches whose tag moved or whose files changed. A copy cached by an earlier pinned run is
+  checked against the digest but not fetched again, so it still renders the listed files and notices
+  a moved tag only on the next fetch (`--no-cache`). A command typed without `--template-commit` and
   `--template-digest` still fetches by tag alone.
 - `reviewed_by` has no signature behind it. `check-claims` makes a submitter's claim fail CI, and a
   maintainer must still read the diff, because a pull request can also change the hub's own code.
@@ -96,9 +98,9 @@ need, and contributions are welcome:
 
 - **List a pack.** Write a template pack for the projects you start most often, publish it in your
   own GitHub repository, and add it with `pytemplate_hub add`
-  ([how](docs/tutorial.md#6-share-your-pack-on-the-hub)).
-- **Improve the hub.** Fixes, clearer docs, and better checks are all welcome. Open an issue to
-  discuss a larger change first.
+  ([tutorial](docs/tutorial.md#6-share-your-pack-on-the-hub), [full guide](docs/authors.md)).
+- **Improve the hub.** Fixes, clearer docs, and better checks are all welcome; read
+  [CONTRIBUTING.md](CONTRIBUTING.md), and open an issue to discuss a larger change first.
 
 To start, clone the repository and run `uv sync`; the commands below are all you need. Tests run
 offline, and no command needs pip, virtualenv activation, or make.
