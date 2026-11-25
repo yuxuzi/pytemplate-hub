@@ -94,8 +94,8 @@ def no_stars(_: Entry) -> None:
 def create_command(entry: Entry, version: Version, profile: str) -> str:
     """Return the command that creates a project from ``profile`` at the listed tag.
 
-    The commit and digest make pytemplate-uv (3.1 or later) refuse the pack if the tag moved or
-    its files changed since the hub checked it.
+    The commit and digest make pytemplate-uv (3.1 or later) refuse a fetched pack if the tag moved
+    or its files changed since the hub checked it; a cached copy is checked against the digest.
     """
     source = f"gh:{entry.owner}/{entry.repository_name}"
     return (
