@@ -155,8 +155,9 @@ docs); README limits section current; D4 decided; then make the repo public, ena
 - Do not claim security guarantees that have not been established.
 - Do not fabricate external users, authors, endorsements, or adoption.
 - Do not publish, announce, make public, tag, or create repositories without explicit approval.
-- Keep pytemplate-hub independent from Quant-Agent-OS; pytemplate-uv stays the generation engine
-  and never names the hub.
+- Keep pytemplate-hub independent from Quant-Agent-OS; pytemplate-uv stays the generation engine.
+  (Superseded 2026-11-24: pytemplate-uv names the hub as the place to find packs, and 3.5 reads
+  pins from it with `-h`.)
 - Ask before CI workflow changes, dependency additions, or version bounds (hub CLAUDE.md).
 
 ## Deliverables (where each lands)
@@ -197,3 +198,11 @@ docs); README limits section current; D4 decided; then make the repo public, ena
   listing them with `pytemplate_hub add --run-lifecycle` (on this machine, trusted own packs).
 - 2026-11-24: user approved publishing. Authors unified (Leo Liu <yuxuzi@gmail.com>); five public
   repos yuxuzi/<pack> with v1.0.0 pushed; hub PR #16 lists them (verify: 8 entries).
+- 2026-11-25: PRs #12-#19 merged; the hub repository is public. PR #21 moved the website
+  (pytemplate-web) into the hub as the `site` command, with `pages.yml` (D3's Pages half); the site
+  is live at <https://yuxuzi.github.io/pytemplate-hub/>. PR #22 made the short `-h` command the
+  default on the site. pytemplate-uv 3.5.0 reads pins from the hub with `-h`.
+- 2026-11-25: decided to keep two repositories, pytemplate-uv (the generator, on PyPI) and
+  pytemplate-hub (the index and the website). User documentation lives on the website only; each
+  repository keeps a README that links to it. The pytemplate-web repository is retired.
+  Still open: D3's scheduled verify, P0-1, P1-4, P1-6, the `v1.0.0` tag, and the launch posts.
