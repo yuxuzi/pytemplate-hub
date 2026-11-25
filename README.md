@@ -1,137 +1,60 @@
 # pytemplate-hub
 
-A static, verified index of [pytemplate-uv](https://github.com/yuxuzi/pytemplate-uv) template packs.
+A static, verified index of [pytemplate-uv](https://github.com/yuxuzi/pytemplate-uv) template packs,
+and the website for both projects.
 
-**Status: phase 4.** The index format, its checks, the first listed packs, and a static site builder
-exist, and the site's commands pin each pack to its checked commit and digest. The site is not
-published, and this repository is private. The name is provisional.
+**Website: <https://yuxuzi.github.io/pytemplate-hub/>.** Find a pack, copy its command, and read
+the tutorial and the guides there. This README covers the repository; the documentation lives on
+the website only.
 
 ## Find a template
 
-Browse the packs on the [hub's site](https://yuxuzi.github.io/pytemplate-hub/), or the entries in
-[`index/`](index), one file per pack. Each listing gives a short command. pytemplate-uv 3.5 or later
-reads the commit and digest the hub checked for that tag, so it refuses the pack if anything changed
-since:
+Browse the packs on the [website](https://yuxuzi.github.io/pytemplate-hub/), or the entries in
+[`index/`](index), one file per pack. Each listing gives a short command; pytemplate-uv 3.5 or
+later reads the commit and digest the hub checked for that tag, and refuses the pack if anything
+changed since:
 
 ```bash
 uvx pytemplate-uv@latest create my-app -h <owner>/<pack>@<tag> -p <profile> -y
 ```
 
-`-h` is `--hub`; `--help` prints help. Without `-p` in a terminal, pytemplate-uv asks for the profile.
+The hub stores references, not templates: authors keep their packs in their own GitHub
+repositories, and each entry binds a tag to the exact commit and file contents that were checked.
+**A listed pack is not a reviewed or safe pack**, and a generated project's dependencies, build
+backend, and tests still run code when you use them.
 
-For CI and offline use, the listing also gives the fully pinned form, which names the commit and
-digest yourself and needs no hub index:
+## Documentation
 
-```bash
-uvx pytemplate-uv@latest create my-app -p <profile> --template gh:<owner>/<pack> \
-  --template-ref <tag> --template-commit <commit> --template-digest <digest> -y
-```
+| Page | For |
+| --- | --- |
+| [Tutorial](https://yuxuzi.github.io/pytemplate-hub/learn/tutorial/) | Your first project, a pack from the hub, and a pack of your own, listed |
+| [Using pytemplate-uv](https://yuxuzi.github.io/pytemplate-hub/learn/guide/) | Every command and option of the generator |
+| [Template packs](https://yuxuzi.github.io/pytemplate-hub/learn/packs/) | Using, writing, and pinning packs |
+| [Publish a pack](https://yuxuzi.github.io/pytemplate-hub/publish/) | Listing your pack: requirements, the entry, the pull request, and CI |
+| [What the checks mean](https://yuxuzi.github.io/pytemplate-hub/learn/trust/) | What a listing proves, the security model, and the limits |
+| [Compatibility and versioning](https://yuxuzi.github.io/pytemplate-hub/learn/compatibility/) | What each pytemplate-uv release keeps stable |
 
-New here? The [tutorial](docs/tutorial.md) walks from your first generated project to your own
-pack, listed on the hub.
+The pages are built from the Markdown in
+[`pytemplate_hub/site/learn/`](pytemplate_hub/site/learn); edit them there.
 
-## How it works
+## Working on the hub
 
-The hub stores references, not templates. Authors keep their packs in their own GitHub repositories,
-and each index entry binds a tag to the exact commit and file contents that were checked:
-
-```toml
-# index/<github-owner>/<pack-id>.toml
-format = 1
-repository = "https://github.com/acme/sample-pack"
-name = "Sample pack"
-description = "From the pack's manifest; verify compares it with the latest version."
-categories = ["cli", "library"]          # from pytemplate_hub/categories.toml only
-keywords = ["starter", "tests"]           # search words
-
-[[versions]]
-tag = "v1.0.0"
-commit = "<40-character commit SHA>"
-digest = "<SHA-256 over every file's path and bytes>"
-pack_version = "1.0.0"
-license = "MIT"
-checked_with = "pytemplate-uv==3.0.0"
-checked_on = 2026-11-24                  # the day add ran
-profiles = [{ id = "tool", lifecycle = "passed", name = "Sample tool", description = "A small package.", kind = "library", supported_python = ["3.11", "3.12"], dependencies = ["pytest"], security_posture = "Rendering contacts no service." }]
-```
-
-Each profile's details come from its own `profile.toml`. `dependencies` holds names only. Entries
-written before these fields existed still load. `verify` skips a detail that an entry does not
-record, and checks every detail that it does record.
-
-Only contract 1 pytemplate packs at the root of a public GitHub repository can be listed.
-
-## Usage
+The hub is a uv project. Clone it and run `uv sync`; nothing needs pip, virtualenv activation, or
+make, and the tests run offline.
 
 ```bash
 uv run pytemplate_hub add https://github.com/acme/sample-pack --tag v1.0.0 --license MIT
 uv run pytemplate_hub verify                     # fail if a tag moved or a pack stopped passing
 uv run pytemplate_hub check-claims --base OLD    # fail if a change claims a review
-uv run pytemplate_hub site                       # build site/index.html and site/index.json
+uv run pytemplate_hub site --no-stars            # build the website into site/, offline
 ```
 
 `--run-lifecycle` also runs each profile's lifecycle commands. **That executes the pack's code**, so
 use it only on an isolated machine with no credentials.
 
-## What the checks mean
-
-| Signal | Means | Does not mean |
-| --- | --- | --- |
-| `listed` | The pack passed the automated checks at this commit | Safe, reviewed, or endorsed |
-| `reviewed` | The named maintainer reviewed this exact commit | Safe or free of bugs |
-| `lifecycle = "passed"` | The commands passed with default answers, at the time of the check | Other answers or components work |
-| `license` | The submitter's declaration, and a license file exists | The hub checked the license text |
-
-Details: [docs/trust.md](docs/trust.md), including what rendering and lifecycle commands do. **A
-generated project's dependencies, build backend, and tests still run code when you use them.**
-
-## Listing a pack
-
-Read [docs/authors.md](docs/authors.md). It covers the pack requirements, tagging a release, adding
-your entry with `pytemplate_hub add`, opening the pull request, and what the CI checks report.
-Contributors to the hub's code should read [CONTRIBUTING.md](CONTRIBUTING.md).
-
-## The site
-
-`site` writes `index.html`, the page with search, a reviewed-only filter, and each profile's pinned
-command; `index.json`, the same data; `index.schema.json`, a JSON Schema for `index.json`; and the
-page's `static/` files. The page is rendered with Jinja2 from the index, so the hub has no
-separate data snapshot. Star counts come from GitHub at build time, and comments link to the
-source repository's issues, so the hub has no accounts. `--no-stars` builds without network access.
-Yanked versions stay in the JSON and leave the page. Each push to `main` publishes the site through
-[`.github/workflows/pages.yml`](.github/workflows/pages.yml), which runs no pack code. The website's
-plan and design are in [docs/site](docs/site/plan.md).
-
-## Limits
-
-- Star counts are only as fresh as the last build. The Pages workflow rebuilds on each push to `main`, not on a schedule.
-- A pack's generated projects may install dependencies from moving sources, so a passing lifecycle
-  result describes those sources as they were at check time.
-- The site's commands pass the listed commit and digest, so pytemplate-uv 3.1 or later refuses a pack
-  it fetches whose tag moved or whose files changed. A copy cached by an earlier pinned run is
-  checked against the digest but not fetched again, so it still renders the listed files and notices
-  a moved tag only on the next fetch (`--no-cache`). A command typed without `--template-commit` and
-  `--template-digest` still fetches by tag alone.
-- `reviewed_by` has no signature behind it. `check-claims` makes a submitter's claim fail CI, and a
-  maintainer must still read the diff, because a pull request can also change the hub's own code.
-- The `pull_request` CI job has no secrets, but it does have network access.
-
-## Contributing
-
-The hub is a uv project, and so is everything around it: pytemplate-uv generates uv-native
-projects, and the hub runs packs' checks with `uv`. If you use uv, you already have everything you
-need, and contributions are welcome:
-
-- **List a pack.** Write a template pack for the projects you start most often, publish it in your
-  own GitHub repository, and add it with `pytemplate_hub add`
-  ([tutorial](docs/tutorial.md#6-share-your-pack-on-the-hub), [full guide](docs/authors.md)).
-- **Improve the hub.** Fixes, clearer docs, and better checks are all welcome; read
-  [CONTRIBUTING.md](CONTRIBUTING.md), and open an issue to discuss a larger change first.
-
-To start, clone the repository and run `uv sync`; the commands below are all you need. Tests run
-offline, and no command needs pip, virtualenv activation, or make.
-
-## Development
+`site` writes the home page, the Learn pages, `index.json` (the same data for tools),
+`index.schema.json`, and the static files. Each push to `main` publishes it through
+[`.github/workflows/pages.yml`](.github/workflows/pages.yml), which runs no pack code.
 
 | Task | Command |
 | --- | --- |
@@ -139,3 +62,13 @@ offline, and no command needs pip, virtualenv activation, or make.
 | Lint | `uv run ruff check .` |
 | Format | `uv run ruff format .` |
 | Type-check | `uv run mypy pytemplate_hub` |
+
+- To list a pack, follow [Publish a pack](https://yuxuzi.github.io/pytemplate-hub/publish/).
+- To change the hub itself, read [CONTRIBUTING.md](CONTRIBUTING.md), and open an issue to discuss a
+  larger change first.
+- Maintainer documents (the launch plan, the audit, the website's plan and design) are in
+  [`docs/`](docs).
+
+## License
+
+MIT. See [LICENSE](LICENSE).
