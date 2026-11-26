@@ -178,3 +178,17 @@ def test_only_the_scheduled_report_job_can_write_issues() -> None:
     assert "issues: write" not in verify_text
     assert "GH_TOKEN: ${{ github.token }}" in report_text
     assert "--repo" in report_text
+
+
+CODEOWNERS = Path(__file__).parent.parent / ".github" / "CODEOWNERS"
+
+
+def test_codeowners_requires_review_for_entries_code_and_workflows() -> None:
+    lines = [
+        line.strip()
+        for line in CODEOWNERS.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+
+    for path in ("/index/", "/pytemplate_hub/", "/.github/"):
+        assert any(line.split()[0] == path and "@yuxuzi" in line for line in lines), path
