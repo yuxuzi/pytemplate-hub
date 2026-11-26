@@ -9,7 +9,7 @@ from rich.console import Console
 
 from pytemplate_hub.errors import HubError
 from pytemplate_hub.fetch import GitFetcher
-from pytemplate_hub.site import build_site, github_stars, no_stars
+from pytemplate_hub.site import GitHubStars, build_site, no_stars
 from pytemplate_hub.verify import (
     add_version,
     changed_claims,
@@ -132,16 +132,20 @@ def site(
     if not index.is_dir():
         errors.print(f"{index} is not a directory.", markup=False, soft_wrap=True)
         raise typer.Exit(1)
+    star_source = GitHubStars() if stars else None
     try:
         shown = build_site(
             index,
             output,
-            stars=github_stars if stars else no_stars,
+            stars=star_source if star_source is not None else no_stars,
             built_on=date.today().isoformat(),
         )
     except HubError as error:
         errors.print(str(error), markup=False, soft_wrap=True)
         raise typer.Exit(1) from error
+    warning = star_source.warning() if star_source is not None else None
+    if warning is not None:
+        errors.print(warning, markup=False, soft_wrap=True)
     console.print(f"Built {output} with {shown} packs.", markup=False, soft_wrap=True)
 
 

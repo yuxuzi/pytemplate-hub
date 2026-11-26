@@ -1,5 +1,4 @@
 /* pytemplate-web: design tokens and home-page styles, from design/prototype.html. */
-/* TODO: self-host the web fonts (see templates/base.html) and drop the Google Fonts rule. */
 /* Layout: the catalog as a manifest. Ruled rows, each with a pin label (tag, commit, digest)
    drawn as a luggage tag; a terminal and a verification seal open the page. */
 :root {
@@ -26,9 +25,10 @@
   --term-tag: #f2b640;
   --term-ok: #6fd7a1;
   --shadow: 0 1px 0 rgba(19, 32, 26, .04), 0 10px 30px -14px rgba(19, 32, 26, .22);
-  --f-display: "Martian Mono", ui-monospace, Menlo, Consolas, monospace;
-  --f-text: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --f-code: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* System font stacks: the site loads no web fonts, so a visit makes no third-party requests. */
+  --f-display: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --f-text: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --f-code: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   --r: 6px;
   --hole: var(--paper);
   --slide-ms: 8000ms;
