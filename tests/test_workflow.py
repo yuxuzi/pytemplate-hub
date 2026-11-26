@@ -1,5 +1,6 @@
 """The workflow that runs untrusted template code must stay isolated."""
 
+import re
 from pathlib import Path
 
 WORKFLOW = Path(__file__).parent.parent / ".github" / "workflows" / "verify-index.yml"
@@ -120,3 +121,60 @@ def test_pages_workflow_grants_only_what_publishing_needs() -> None:
     assert "id-token: write" in text
     assert "secrets." not in text
     assert "pull_request" not in text
+
+
+SCHEDULED = Path(__file__).parent.parent / ".github" / "workflows" / "verify-scheduled.yml"
+
+
+def _scheduled_jobs() -> tuple[str, str]:
+    """Return the text of the `verify` and `report` jobs, with comments removed."""
+    text = "\n".join(
+        line
+        for line in SCHEDULED.read_text(encoding="utf-8").splitlines()
+        if not line.lstrip().startswith("#")
+    )
+    verify_text, report_text = text.split("\n  report:\n", 1)
+    return verify_text, report_text
+
+
+def test_scheduled_workflow_has_no_pull_request_trigger() -> None:
+    text = "\n".join(
+        line
+        for line in SCHEDULED.read_text(encoding="utf-8").splitlines()
+        if not line.lstrip().startswith("#")
+    )
+
+    assert "pull_request" not in text
+    assert "schedule:" in text
+    assert 'cron: "17 6 * * 1"' in text
+    assert "workflow_dispatch" in text
+    assert "permissions:\n  contents: read\n" in text
+
+
+def test_scheduled_verify_job_has_no_write_access_or_secrets() -> None:
+    verify_text, _ = _scheduled_jobs()
+
+    assert "verify:" in verify_text
+    assert ": write" not in verify_text
+    assert "secrets." not in verify_text
+    assert "github.token" not in verify_text
+    assert "pytemplate_hub verify --run-lifecycle" in verify_text
+
+
+def test_scheduled_report_job_runs_no_checkout_uv_or_hub_code() -> None:
+    _, report_text = _scheduled_jobs()
+
+    assert "needs: verify" in report_text
+    assert "if: failure()" in report_text
+    assert "actions/checkout" not in report_text
+    assert re.search(r"\buv\b", report_text) is None
+    assert "pytemplate_hub" not in report_text
+
+
+def test_only_the_scheduled_report_job_can_write_issues() -> None:
+    verify_text, report_text = _scheduled_jobs()
+
+    assert "issues: write" in report_text
+    assert "issues: write" not in verify_text
+    assert "GH_TOKEN: ${{ github.token }}" in report_text
+    assert "--repo" in report_text
