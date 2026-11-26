@@ -404,7 +404,11 @@ a.chip:hover { color: var(--ink); }
 /* Catalog: filters on the left, search and results on the right. */
 .cat { display: grid; grid-template-columns: 236px minmax(0, 1fr); gap: 36px; padding-block: 28px 72px; }
 .facets { display: grid; gap: 24px; align-content: start; position: sticky;
-  top: calc(env(safe-area-inset-top, 0px) + 80px); max-height: calc(100vh - 100px); overflow-y: auto; padding-right: 4px; }
+  top: calc(env(safe-area-inset-top, 0px) + 80px); max-height: calc(100vh - 100px); overflow-y: auto;
+  /* A scrolling box clips at its padding edge: leave room for the checkboxes' borders and focus
+     rings, pulled back by the margin so the boxes still line up with the page, and keep the
+     scrollbar clear of the counts. */
+  padding: 4px 12px 4px 4px; margin: -4px 0 0 -4px; scrollbar-gutter: stable; }
 .fgroup h3 { margin: 0 0 8px; }
 .fopt { display: flex; align-items: center; gap: 9px; padding: 4px 0; font-size: 15px; cursor: pointer; }
 .fopt input { width: 16px; height: 16px; accent-color: var(--tag); margin: 0; flex: none; }
@@ -420,7 +424,7 @@ a.chip:hover { color: var(--ink); }
 @media (max-width: 860px) {
   .cat { grid-template-columns: 1fr; gap: 16px; }
   .facets { position: static; max-height: none; display: none; grid-template-columns: repeat(2, minmax(0, 1fr));
-    padding: 16px; border: 1px solid var(--rule); border-radius: 10px; background: var(--sheet); }
+    padding: 16px; margin: 0; border: 1px solid var(--rule); border-radius: 10px; background: var(--sheet); }
   .facets.open { display: grid; }
   .filter-toggle { display: inline-flex; }
 }
