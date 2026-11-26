@@ -1,6 +1,10 @@
 # Checks a proposed index change. This runs untrusted template code, so it must stay isolated:
 # - the `pull_request` trigger gives pull requests from forks no secrets;
 # - the token can only read, and it is not left on disk for later steps.
+# - the tooling (the hub's code, its lock file, and its checks) comes from the base commit, so a
+#   pull request cannot change the checker it is judged by. The pull request's index is read as
+#   data only (`head/index`). A pull request that changes both the schema and the index must be
+#   split in two: the schema change merges first, then the index entries that rely on it.
 # Never add secrets, write permissions, or a `pull_request_target` trigger to this workflow.
 name: Verify index
 
@@ -17,20 +21,27 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7
+      - name: Check out the base commit (trusted tooling)
+        uses: actions/checkout@v7
         with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
           persist-credentials: false
-          fetch-depth: 0
+      - name: Check out the pull request (index data only)
+        uses: actions/checkout@v7
+        with:
+          path: head
+          persist-credentials: false
       - uses: astral-sh/setup-uv@v10.3.2
-      - run: uv sync --locked
+      - name: Install the base commit's tooling
+        working-directory: base
+        run: uv sync --locked
       - name: Refuse review claims and rewritten facts
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        working-directory: base
         run: |
-          mkdir -p "$RUNNER_TEMP/base/index"
-          if git cat-file -e "$BASE_SHA:index" 2>/dev/null; then
-            git archive "$BASE_SHA" index | tar -x -C "$RUNNER_TEMP/base"
-          fi
-          uv run pytemplate_hub check-claims --base "$RUNNER_TEMP/base/index"
+          # A base with no index yet has nothing to compare against.
+          mkdir -p index
+          uv run pytemplate_hub check-claims --base index --index ../head/index
       - name: Check every listed version, running its lifecycle commands
-        run: uv run pytemplate_hub verify --run-lifecycle
+        working-directory: base
+        run: uv run pytemplate_hub verify --index ../head/index --run-lifecycle

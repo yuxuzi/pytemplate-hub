@@ -1,0 +1,53 @@
+# Re-verifies every listed version once a week, so a tag that moved or a pack that broke
+# is found without waiting for a pull request. It is two jobs on purpose:
+# - `verify` runs the hub's code and pack code (`--run-lifecycle`), so it gets no secrets and
+#   no write permission, and it keeps the token read-only and off disk.
+# - `report` has `issues: write` but runs no checkout, no uv, and no hub code. It only calls
+#   `gh` to open or update one issue, so the write permission never meets pack code.
+# Never add secrets or a write permission to `verify`, or a pull_request trigger here.
+name: Verify scheduled
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v10.3.2
+      - run: uv sync --locked
+      - run: uv run pytemplate_hub verify --run-lifecycle
+
+  report:
+    needs: verify
+    if: failure()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      issues: write
+    steps:
+      - name: Open or update the failure issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          number=$(gh issue list --repo "${{ github.repository }}" --state open \
+            --search 'in:title "Scheduled verify failed"' --json number,title \
+            --jq '[.[] | select(.title == "Scheduled verify failed")][0].number // empty')
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --repo "${{ github.repository }}" \
+              --body "Scheduled verify failed again: $RUN_URL"
+          else
+            gh issue create --repo "${{ github.repository }}" \
+              --title "Scheduled verify failed" \
+              --body "The weekly verify of every listed version failed: $RUN_URL"
+          fi
