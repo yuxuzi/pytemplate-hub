@@ -17,6 +17,7 @@ from pydantic import (
     ValidationError,
     model_validator,
 )
+from pytemplate import api
 
 from pytemplate_hub.errors import EntryError
 
@@ -33,14 +34,26 @@ SECURITY_POSTURE_MAX = 1000
 
 
 def load_categories(path: Path = CATEGORIES_FILE) -> dict[str, str]:
-    """Return the fixed category vocabulary: each id mapped to its label, in file order."""
+    """Return each of pytemplate-uv's fixed categories mapped to the hub's label, in its order.
+
+    pytemplate-uv owns the list (``api.PACK_CATEGORIES``); this file holds only the labels the
+    site shows. A category with no label, or a label for a category pytemplate-uv lacks, is an
+    error, so the two cannot drift apart.
+    """
     data = tomllib.loads(path.read_text(encoding="utf-8"))
     labels: dict[str, str] = {}
-    for identifier, table in data.items():
+    for identifier in api.PACK_CATEGORIES:
+        table = data.get(identifier)
         label = table.get("label") if isinstance(table, dict) else None
-        if not PACK_ID.match(identifier) or not isinstance(label, str) or not label:
-            raise EntryError(f"{path}: each category needs an id and a label, got {identifier!r}.")
+        if not isinstance(label, str) or not label:
+            raise EntryError(f"{path}: category {identifier!r} needs a label.")
         labels[identifier] = label
+    extra = sorted(set(data) - set(api.PACK_CATEGORIES))
+    if extra:
+        raise EntryError(
+            f"{path}: {', '.join(extra)} are not pytemplate-uv categories. A new category comes "
+            "in a pytemplate-uv release first."
+        )
     return labels
 
 
@@ -53,7 +66,7 @@ def check_categories(values: tuple[str, ...] | list[str]) -> tuple[str, ...]:
         if value not in CATEGORIES:
             raise ValueError(
                 f"unknown category {value!r}. Use one of: {', '.join(CATEGORIES)}. "
-                "A new category is a change to pytemplate_hub/categories.toml."
+                "A new category comes in a pytemplate-uv release."
             )
     if len(set(values)) != len(values):
         raise ValueError("each category may be listed only once")

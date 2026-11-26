@@ -1,6 +1,6 @@
-# The fixed category vocabulary. A pack declares categories from this list in
-# pytemplate-pack.toml; a category that is not here is refused. Adding one is a change to this
-# file, reviewed like any other change to the hub.
+# The labels the site shows for each category. The list itself is pytemplate-uv's fixed
+# PACK_CATEGORIES; a pack declares categories from it in pytemplate-pack.toml. Every category needs
+# a label here, and a label for a category pytemplate-uv lacks is refused.
 
 [cli]
 label = "Command-line apps"

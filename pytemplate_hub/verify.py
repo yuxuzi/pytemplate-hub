@@ -20,6 +20,7 @@ from pytemplate import api
 from pytemplate_hub.errors import FetchError, HubError, PackCheckError
 from pytemplate_hub.fetch import GitFetcher, directory_digest
 from pytemplate_hub.schema import (
+    CATEGORIES,
     GITHUB_URL,
     PACK_ID,
     Entry,
@@ -293,6 +294,12 @@ def add_version(
             f"The manifest's pack id {found.pack_id!r} is not allowed. A pack id must match "
             f"{PACK_ID.pattern}: lowercase letters, digits, and hyphens. Rename the pack in "
             f"{PACK_MANIFEST} and tag again."
+        )
+    if not found.categories:
+        raise PackCheckError(
+            f"The pack declares no categories. Add categories = [...] to {PACK_MANIFEST} with one "
+            f"or two of: {', '.join(CATEGORIES)}, then tag again. The hub files every listed pack "
+            "under its categories."
         )
     path = entry_path(index, owner, found.pack_id)
     if path.exists():

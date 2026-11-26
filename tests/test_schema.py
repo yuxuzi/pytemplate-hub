@@ -218,3 +218,20 @@ def test_dependency_name_refuses_a_line_with_no_name() -> None:
 def test_categories_vocabulary_has_labels_in_file_order() -> None:
     assert list(CATEGORIES) == ["cli", "library", "web", "worker", "data", "ai", "quant"]
     assert CATEGORIES["ai"] == "AI tools and MCP"
+
+
+def test_category_labels_cover_exactly_pytemplate_uvs_list(tmp_path: Path) -> None:
+    from pytemplate import api
+
+    from pytemplate_hub.schema import CATEGORIES, load_categories
+
+    assert tuple(CATEGORIES) == api.PACK_CATEGORIES
+    extra = tmp_path / "categories.toml"
+    labels = "".join(f'[{c}]\nlabel = "{c.title()}"\n' for c in api.PACK_CATEGORIES)
+    extra.write_text(labels + '[gardening]\nlabel = "Gardening"\n', encoding="utf-8")
+    with pytest.raises(EntryError, match="gardening are not pytemplate-uv categories"):
+        load_categories(extra)
+    missing = tmp_path / "missing.toml"
+    missing.write_text('[cli]\nlabel = "CLI"\n', encoding="utf-8")
+    with pytest.raises(EntryError, match="category 'library' needs a label"):
+        load_categories(missing)
