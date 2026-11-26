@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ owner }} · Packs · Pytemplate Hub{% endblock %}
+{% block description %}Template packs listed on pytemplate-hub by {{ owner }}.{% endblock %}
+{% block content %}
+<div class="page-head"><div class="wrap">
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="{{ links.templates }}">Templates</a><span>/</span><span>authors</span><span>/</span><span>{{ owner }}</span></nav>
+  <h1>{{ owner }}</h1>
+  <p>{{ cards|length }} listed {{ "pack" if cards|length == 1 else "packs" }} and {{ profile_count }} {{ "profile" if profile_count == 1 else "profiles" }}. Each listing is pinned to the commit and digest the hub checked. <strong>Listed does not mean safe.</strong></p>
+  <p class="note"><a href="https://github.com/{{ owner }}" rel="noopener nofollow">GitHub profile →</a></p>
+</div></div>
+<div class="wrap section">
+  <div class="list">
+    {% for card in cards %}
+    <article class="row">
+      <div class="row-main">
+        <div class="row-head">
+          <a class="row-title" href="{{ root }}{{ card.path }}index.html">{{ card.name }}</a>
+          {% if card.tier == "reviewed" %}<span class="badge reviewed">Reviewed</span>{% else %}<span class="badge">Listed</span>{% endif %}
+        </div>
+        <div class="row-id">{{ card.identifier }}{% if card.categories %} · {{ card.category_labels|join(', ') }}{% endif %}</div>
+        <p class="row-desc">{{ card.description }}</p>
+        <div class="chips" aria-label="Profiles">
+          {% for profile in card.profiles %}
+          <a class="chip" href="{{ root }}{{ card.path }}index.html?profile={{ profile.id }}" title="{{ profile.name }}">{{ profile.id }}</a>
+          {% endfor %}
+        </div>
+        {% if card.stack %}<div class="stackline">Stack: {{ card.stack|join(' · ') }}</div>{% endif %}
+      </div>
+      <div class="row-side">
+        <div><span class="pin">{{ card.tag }}</span></div>
+        <dl class="facts">
+          <dt>commit</dt><dd>{{ card.commit[:12] }}</dd>
+          <dt>stars</dt><dd>{{ card.stars if card.stars is not none else "unavailable" }}</dd>
+          <dt>license</dt><dd>{{ card.license }}</dd>
+          <dt>checked</dt><dd>{{ card.checked_on or "not recorded" }}, {{ card.checked_with }}</dd>
+        </dl>
+        {% set first = card.profiles[0] %}
+        <div class="side-actions">
+          <button class="btn small primary" type="button" data-copy="{{ first.command.text }}" data-what="Command"><svg width="14" height="14" aria-hidden="true"><use href="#i-copy"/></svg><span>Copy {{ first.id }}</span></button>
+          <a href="{{ root }}{{ card.path }}index.html">Details →</a>
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -73,10 +73,13 @@ const packs = rows.map((row) => ({
   chips: [...row.querySelectorAll("[data-profile]")].map((chip) => ({ chip, fields: [[3, words(chip.dataset.words)]] })),
   copy: row.querySelector("[data-row-copy]"),
   copyLabel: row.querySelector("[data-row-copy-label]"),
+  titleLink: row.querySelector(".row-title"),
+  detailsLink: row.querySelector(".side-actions a"),
 }));
 for (const pack of packs) {
   pack.defaultCommand = pack.copy ? pack.copy.dataset.copy : "";
   pack.defaultLabel = pack.copyLabel ? pack.copyLabel.textContent : "";
+  pack.baseHref = pack.titleLink ? pack.titleLink.getAttribute("href") : "";
 }
 
 const state = { q: "", sort: "recommended", reviewed: false, python: "", picked: Object.fromEntries(FACETS.map((k) => [k, new Set()])) };
@@ -171,6 +174,11 @@ function render() {
       pack.copy.dataset.copy = chip ? chip.dataset.command : pack.defaultCommand;
       pack.copyLabel.textContent = chip ? `Copy ${chip.dataset.profile}` : pack.defaultLabel;
     }
+    if (pack.baseHref) {
+      const href = pack.hit ? `${pack.baseHref}?profile=${encodeURIComponent(pack.hit.dataset.profile)}` : pack.baseHref;
+      if (pack.titleLink) pack.titleLink.setAttribute("href", href);
+      if (pack.detailsLink) pack.detailsLink.setAttribute("href", href);
+    }
   }
   for (const pack of shown) list.append(pack.row);
 
@@ -183,6 +191,7 @@ function render() {
 
   const active = FACETS.reduce((n, key) => n + state.picked[key].size, 0) + (state.reviewed ? 1 : 0) + (state.python ? 1 : 0);
   $("clear").hidden = active === 0;
+  if ($("clear-inline")) $("clear-inline").hidden = active === 0;
   $("filter-toggle").textContent = active ? `Filters (${active})` : "Filters";
   writeAddress();
 }
@@ -211,6 +220,7 @@ if (list) {
     });
   }
   $("clear").addEventListener("click", () => { clearFilters(); render(); });
+  if ($("clear-inline")) $("clear-inline").addEventListener("click", () => { clearFilters(); render(); });
   $("reset").addEventListener("click", () => { clearFilters(); state.q = ""; $("q").value = ""; render(); $("q").focus(); });
   for (const hint of document.querySelectorAll("[data-hint]")) {
     hint.addEventListener("click", () => { state.q = hint.dataset.hint; $("q").value = state.q; render(); $("q").focus(); });
@@ -218,6 +228,20 @@ if (list) {
   $("filter-toggle").addEventListener("click", (event) => {
     const open = $("facets").classList.toggle("open");
     event.currentTarget.setAttribute("aria-expanded", String(open));
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "/" && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      const tag = event.target instanceof Element ? event.target.tagName : "";
+      if (tag !== "INPUT" && tag !== "TEXTAREA" && tag !== "SELECT") {
+        event.preventDefault();
+        $("q").focus();
+        $("q").select();
+      }
+    } else if (event.key === "Escape" && document.activeElement === $("q") && $("q").value) {
+      state.q = "";
+      $("q").value = "";
+      render();
+    }
   });
   render();
 }

@@ -10,7 +10,7 @@ index. The Learn pages hold only the hub's own Markdown, rendered by ``learn`` w
 from __future__ import annotations
 
 import shutil
-from collections import Counter
+from collections import Counter, defaultdict
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -19,13 +19,23 @@ from typing import Any
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from pytemplate_hub.schema import CATEGORIES
-from pytemplate_hub.site.learn import LEARN_PATH, PAGES, PAGES_BY_SLUG, Page, render_page, root_of
+from pytemplate_hub.site.learn import (
+    LEARN_PATH,
+    PAGES,
+    PAGES_BY_SLUG,
+    SITE_URL,
+    Page,
+    render_page,
+    root_of,
+)
 
 PACKAGE_DIR = Path(__file__).resolve().parent
 TEMPLATE_DIR = PACKAGE_DIR / "templates"
 STATIC_DIR = PACKAGE_DIR / "static"
 NEWEST_COUNT = 5
 CATALOG_PATH = "templates/"
+AUTHORS_PATH = "authors/"
+BADGE_PATH = "badge/"
 HUB_URL = "https://github.com/yuxuzi/pytemplate-hub"
 UV_URL = "https://github.com/yuxuzi/pytemplate-uv"
 LINKS: dict[str, str] = {
@@ -43,6 +53,8 @@ SITE_LINKS: dict[str, str] = {
     "templates": f"{CATALOG_PATH}index.html",
     "learn": f"{LEARN_PATH}index.html",
     "tutorial": f"{PAGES_BY_SLUG['tutorial'].path}index.html",
+    "guide": f"{PAGES_BY_SLUG['guide'].path}index.html",
+    "packs": f"{PAGES_BY_SLUG['packs'].path}index.html",
     "authors": f"{PAGES_BY_SLUG['publish'].path}index.html",
     "trust": f"{PAGES_BY_SLUG['trust'].path}index.html",
 }
@@ -182,7 +194,7 @@ class Facet:
 def _environment() -> Environment:
     return Environment(
         loader=FileSystemLoader(TEMPLATE_DIR),
-        autoescape=select_autoescape(enabled_extensions=("html",), default_for_string=True),
+        autoescape=select_autoescape(enabled_extensions=("html", "svg"), default_for_string=True),
         trim_blocks=True,
         lstrip_blocks=True,
     )
@@ -236,16 +248,22 @@ def python_versions(cards: Sequence[Card]) -> list[str]:
     return sorted(found, key=lambda version: tuple(int(part) for part in version.split(".")))
 
 
+def _ordered(cards: Sequence[Card]) -> list[Card]:
+    """Return cards in the published catalog order: recommended descending, then name."""
+    return sorted(cards, key=lambda card: (-card.recommended, card.name.lower()))
+
+
 def render_index(cards: Sequence[Card], built_on: str) -> str:
     """Render the home page for the listed packs."""
     tiles: list[dict[str, Any]] = [
         {**tile, "count": sum(tile["id"] in card.categories for card in cards)} for tile in TILES
     ]
+    ordered = _ordered(cards)
     template = _environment().get_template("index.html")
     return template.render(
         categories=tiles,
-        cards=list(cards),
-        featured=cards[0] if cards else None,
+        cards=ordered,
+        featured=ordered[0] if ordered else None,
         newest_packs=newest(cards),
         profile_count=sum(len(card.profiles) for card in cards),
         links=links(""),
@@ -258,7 +276,7 @@ def render_index(cards: Sequence[Card], built_on: str) -> str:
 def render_catalog(cards: Sequence[Card], built_on: str) -> str:
     """Render the catalog: every listed pack, with search, filters, and sorting."""
     root = root_of(CATALOG_PATH)
-    ordered = sorted(cards, key=lambda card: (-card.recommended, card.name.lower()))
+    ordered = _ordered(cards)
     template = _environment().get_template("catalog.html")
     return template.render(
         cards=ordered,
@@ -277,20 +295,97 @@ def render_catalog(cards: Sequence[Card], built_on: str) -> str:
 def render_pack(card: Card, cards: Sequence[Card], built_on: str) -> str:
     """Render one pack's page: its profiles, the command builder, checks, and versions."""
     root = root_of(card.path)
-    similar = [
-        other
-        for other in cards
-        if other.identifier != card.identifier and set(other.categories) & set(card.categories)
-    ]
+    categories = set(card.categories)
+    stack = set(card.stack)
+    similar = sorted(
+        (
+            other
+            for other in cards
+            if other.identifier != card.identifier and set(other.categories) & categories
+        ),
+        key=lambda other: (
+            -len(set(other.categories) & categories),
+            -len(set(other.stack) & stack),
+            -other.recommended,
+            other.name.lower(),
+        ),
+    )
+    badge_rel = f"{BADGE_PATH}{card.owner}/{card.pack_id}.svg"
+    badge_url = f"{SITE_URL}{badge_rel}"
+    pack_url = f"{SITE_URL}{card.path}"
     template = _environment().get_template("pack.html")
     return template.render(
         card=card,
         similar=similar[:4],
+        author_href=f"{root}{AUTHORS_PATH}{card.owner}/index.html",
+        badge_href=f"{root}{badge_rel}",
+        badge_markdown=f"[![Listed on pytemplate hub]({badge_url})]({pack_url})",
         links=links(root),
         root=root,
         current="templates",
         built_on=built_on,
     )
+
+
+def render_author(owner: str, cards: Sequence[Card], built_on: str) -> str:
+    """Render an author's page listing all packs published under ``owner``."""
+    path = f"{AUTHORS_PATH}{owner}/"
+    root = root_of(path)
+    ordered = _ordered(cards)
+    template = _environment().get_template("author.html")
+    return template.render(
+        owner=owner,
+        cards=ordered,
+        profile_count=sum(len(card.profiles) for card in ordered),
+        links=links(root),
+        root=root,
+        current="templates",
+        built_on=built_on,
+    )
+
+
+def render_badge(card: Card) -> str:
+    """Render a small SVG status badge for one listed pack."""
+    status = f"{card.tier} {card.tag}"
+    left_width = 108
+    right_width = max(72, len(status) * 7 + 20)
+    fill = "#2155c4" if card.tier == "reviewed" else "#e8a317"
+    text_fill = "#ffffff" if card.tier == "reviewed" else "#1c1400"
+    template = _environment().get_template("badge.svg")
+    return template.render(
+        status=status,
+        left_width=left_width,
+        right_width=right_width,
+        width=left_width + right_width,
+        fill=fill,
+        text_fill=text_fill,
+    )
+
+
+def render_llms_txt(cards: Sequence[Card], built_on: str) -> str:
+    """Render a plain-text catalog summary for coding agents at ``/llms.txt``."""
+    lines = [
+        "# Pytemplate Hub",
+        "",
+        "> Static, commit-and-digest-pinned index of pytemplate-uv template packs.",
+        f"> Built on {built_on}. Machine-readable catalog: {SITE_URL}index.json",
+        "",
+        "Use any listed pack with pytemplate-uv 3.5 or later:",
+        "  uvx pytemplate-uv@latest create my-project -h <owner>/<pack>@<tag> -p <profile> -y",
+        "",
+        "## Docs",
+        *[f"- {page.title}: {page.url}" for page in PAGES],
+        "",
+        f"## Listed packs ({len(cards)})",
+    ]
+    for card in _ordered(cards):
+        profiles = ", ".join(profile.id for profile in card.profiles)
+        cats = ", ".join(card.categories) or "uncategorized"
+        lines.append(
+            f"- {card.identifier}@{card.tag} [{card.tier}] ({cats}): {card.description} "
+            f"Profiles: {profiles}. URL: {SITE_URL}{card.path}"
+        )
+    return "\n".join(lines) + "\n"
 
 
 def _pages(root: str) -> list[dict[str, str]]:
@@ -309,12 +404,18 @@ def render_learn_page(page: Page, built_on: str) -> str:
     """Render one Learn page, with the list of all pages and its own table of contents."""
     root = root_of(page.path)
     rendered = render_page(page)
+    pages = _pages(root)
+    position = PAGES.index(page)
+    prev_page = pages[position - 1] if position > 0 else None
+    next_page = pages[position + 1] if position + 1 < len(pages) else None
     template = _environment().get_template("learn.html")
     return template.render(
         page=page,
         body=rendered.html,
         headings=rendered.headings,
-        pages=_pages(root),
+        pages=pages,
+        prev_page=prev_page,
+        next_page=next_page,
         links=links(root),
         root=root,
         current="publish" if page.slug == "publish" else "learn",
@@ -342,16 +443,24 @@ def _write(output: Path, path: str, html: str) -> None:
 
 
 def write_site(cards: Sequence[Card], built_on: str, output: Path) -> Path:
-    """Write every page and the static files into ``output``; return ``index.html``."""
+    """Write every page, author page, pack badge, ``llms.txt``, and static files."""
     output.mkdir(parents=True, exist_ok=True)
     index = output / "index.html"
     index.write_text(render_index(cards, built_on), encoding="utf-8")
     _write(output, CATALOG_PATH, render_catalog(cards, built_on))
+    by_owner: dict[str, list[Card]] = defaultdict(list)
     for card in cards:
         _write(output, card.path, render_pack(card, cards, built_on))
+        badge_file = output / BADGE_PATH / card.owner / f"{card.pack_id}.svg"
+        badge_file.parent.mkdir(parents=True, exist_ok=True)
+        badge_file.write_text(render_badge(card), encoding="utf-8")
+        by_owner[card.owner].append(card)
+    for owner, owner_cards in by_owner.items():
+        _write(output, f"{AUTHORS_PATH}{owner}/", render_author(owner, owner_cards, built_on))
     _write(output, LEARN_PATH, render_learn_index(built_on))
     for page in PAGES:
         _write(output, page.path, render_learn_page(page, built_on))
+    (output / "llms.txt").write_text(render_llms_txt(cards, built_on), encoding="utf-8")
     target = output / "static"
     if target.exists():
         shutil.rmtree(target)

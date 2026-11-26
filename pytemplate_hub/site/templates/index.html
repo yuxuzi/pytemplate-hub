@@ -46,23 +46,28 @@
       </div>
     </div>
 
-    <div class="slide" id="slide-1" data-slide role="tabpanel" aria-roledescription="slide" aria-label="2 of 3: New in 3.6" hidden>
+    <div class="slide" id="slide-1" data-slide role="tabpanel" aria-roledescription="slide" aria-label="2 of 3: New in 3.7" hidden>
       <div class="slide-copy">
-        <span class="eyebrow"><span class="dot"></span>Release · pytemplate-uv 3.6.0</span>
+        <span class="eyebrow"><span class="dot"></span>Release · pytemplate-uv 3.7</span>
         <h2 class="h1">One short command for any listed pack.</h2>
-        <p class="lede"><code>-h owner/pack@tag</code> reads the commit and digest the hub checked, and refuses the pack if anything changed. Every guide now lives on this site, under Learn.</p>
+        <p class="lede"><code>-h owner/pack@tag</code> reads the commit and digest the hub checked, and refuses the pack if anything changed. Packs declare fixed categories validated by both tools.</p>
         <div class="ctas">
-          <a class="btn primary" href="{{ links.whats_new }}" rel="noopener">What's new in pytemplate-uv</a>
-          <a class="btn" href="{{ links.pypi }}" rel="noopener">pytemplate-uv on PyPI</a>
+          <a class="btn primary" href="{{ links.guide }}">Using pytemplate-uv</a>
+          <a class="btn" href="{{ links.whats_new }}" rel="noopener">Changelog</a>
         </div>
       </div>
       <div class="stage">
         <div class="release">
-          <div class="release-head"><b>pytemplate-uv</b><span class="pin">v3.6.0</span></div>
+          <div class="release-head"><b>pytemplate-uv</b><span class="pin">v3.7</span></div>
+          {% set ex_pack = featured.identifier|lower if featured else "acme/sample-pack" %}
+          {% set ex_tag = featured.tag if featured else "v1.0.0" %}
+          {% set ex_prof = featured.profiles[0].id if featured and featured.profiles else "tool" %}
           <div class="term"><pre><span class="t-p">$</span> uvx pytemplate-uv@latest list-profiles \
-    -h acme/sample-pack@v1.0.0
+    -h {{ ex_pack }}@{{ ex_tag }}
+<span class="t-p">$</span> uvx pytemplate-uv@latest plan --name my-app \
+    -h {{ ex_pack }}@{{ ex_tag }} -p {{ ex_prof }}
 <span class="t-p">$</span> uvx pytemplate-uv@latest create my-app \
-    -h acme/sample-pack@v1.0.0 -p tool -y</pre></div>
+    -h {{ ex_pack }}@{{ ex_tag }} -p {{ ex_prof }} -y</pre></div>
         </div>
       </div>
     </div>
@@ -95,7 +100,7 @@
     <div class="spot-nav">
       <div class="spot-tabs" role="tablist" aria-label="Spotlight slides">
         <button class="spot-tab" role="tab" type="button" id="tab-0" data-tab aria-controls="slide-0" aria-selected="true"><span class="bar"></span><small>01</small>Own your code</button>
-        <button class="spot-tab" role="tab" type="button" id="tab-1" data-tab aria-controls="slide-1" aria-selected="false" tabindex="-1"><span class="bar"></span><small>02</small>New in 3.6</button>
+        <button class="spot-tab" role="tab" type="button" id="tab-1" data-tab aria-controls="slide-1" aria-selected="false" tabindex="-1"><span class="bar"></span><small>02</small>New in 3.7</button>
         <button class="spot-tab" role="tab" type="button" id="tab-2" data-tab aria-controls="slide-2" aria-selected="false" tabindex="-1"><span class="bar"></span><small>03</small>Newest packs</button>
       </div>
       <button class="icon-btn" id="spot-pause" type="button" aria-pressed="false" aria-label="Pause the spotlight">
@@ -154,7 +159,7 @@
   <div>
     <h2>Your team starts the same project every month. Make it a pack.</h2>
     <p>A pack is a folder of profiles in your own repository. List it on the hub with one pull request, and everyone gets a pinned command.</p>
-    <div class="ctas"><a class="btn primary" href="{{ links.authors }}">Publish a pack</a><a class="btn" href="{{ links.authors }}">Read the author guide</a></div>
+    <div class="ctas"><a class="btn primary" href="{{ links.authors }}">Publish a pack</a><a class="btn" href="{{ links.packs }}">Template pack format</a></div>
   </div>
   <ol>
     <li><span>Tag a release in your pack's repository: <code>git tag v1.0.0</code></span></li>

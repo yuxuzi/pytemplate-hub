@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="{{ width }}" height="22" viewBox="0 0 {{ width }} 22" role="img" aria-label="pytemplate hub: {{ status }}">
+  <rect width="{{ width }}" height="22" rx="4" fill="#13201a"/>
+  <rect x="{{ left_width }}" width="{{ right_width }}" height="22" rx="4" fill="{{ fill }}"/>
+  <rect x="{{ left_width }}" width="6" height="22" fill="{{ fill }}"/>
+  <text x="10" y="15" fill="#e3ebe6" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11">pytemplate hub</text>
+  <text x="{{ left_width + 10 }}" y="15" fill="{{ text_fill }}" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" font-weight="600">{{ status }}</text>
+</svg>

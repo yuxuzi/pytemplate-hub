@@ -12,11 +12,15 @@ if (builder) {
   const picks = [...document.querySelectorAll("[data-profile-pick]")];
   const details = [...document.querySelectorAll("[data-profile-detail]")];
   const profiles = [...$("b-profile").options].map((option) => option.value);
+  const tabNames = tabs.map((tab) => tab.dataset.tab);
   const state = { tab: "create", name: "my-project", profile: profiles[0], yes: true };
+  let dirty = Boolean(location.search);
 
   const params = new URLSearchParams(location.search);
   if (profiles.includes(params.get("profile"))) state.profile = params.get("profile");
   if (NAME.test(params.get("name") || "")) state.name = params.get("name");
+  if (tabNames.includes(params.get("tab"))) state.tab = params.get("tab");
+  if (params.get("yes") === "0") state.yes = false;
 
   function command() {
     if (state.tab === "plan") return `uvx pytemplate-uv@latest plan --name ${state.name} -h ${pack}@${tag} -p ${state.profile}`;
@@ -25,6 +29,10 @@ if (builder) {
         + `--template-ref ${tag} --template-commit ${commit} --template-digest ${digest} -y`;
     }
     return `uvx pytemplate-uv@latest create ${state.name} -h ${pack}@${tag} -p ${state.profile}${state.yes ? " -y" : ""}`;
+  }
+
+  function multiline(cmd) {
+    return cmd.replace(/ (--template |--template-commit |--template-digest )/g, " \\\n  $1");
   }
 
   const NOTES = {
@@ -40,25 +48,29 @@ if (builder) {
     help.className = valid ? "" : "err";
     help.textContent = valid ? "A lowercase name, for example market-data-api." : "Use lowercase letters, digits, and hyphens, starting with a letter.";
     const text = command();
-    $("b-cmd").textContent = text;
+    $("b-cmd").textContent = multiline(text);
     $("b-copy").dataset.copy = text;
     $("b-copy").disabled = !valid;
     $("b-note").textContent = NOTES[state.tab];
     $("b-yes-row").hidden = state.tab !== "create";
+    $("b-yes").checked = state.yes;
     for (const tab of tabs) tab.setAttribute("aria-selected", String(tab.dataset.tab === state.tab));
     for (const pick of picks) pick.checked = pick.value === state.profile;
     for (const detail of details) detail.hidden = detail.dataset.profileDetail !== state.profile;
     $("b-profile").value = state.profile;
     const query = new URLSearchParams({ profile: state.profile, name: state.name });
-    history.replaceState(null, "", `?${query}`);
-    $("b-link").dataset.copy = location.href;
+    if (state.tab !== "create") query.set("tab", state.tab);
+    if (!state.yes) query.set("yes", "0");
+    const shareUrl = `${location.href.split("?")[0].split("#")[0]}?${query}`;
+    if (dirty) history.replaceState(null, "", `?${query}`);
+    $("b-link").dataset.copy = shareUrl;
   }
 
   $("b-name").value = state.name;
-  $("b-name").addEventListener("input", (event) => { state.name = event.target.value.trim(); update(); });
-  $("b-profile").addEventListener("change", (event) => { state.profile = event.target.value; update(); });
-  $("b-yes").addEventListener("change", (event) => { state.yes = event.target.checked; update(); });
-  for (const tab of tabs) tab.addEventListener("click", () => { state.tab = tab.dataset.tab; update(); });
-  for (const pick of picks) pick.addEventListener("change", () => { state.profile = pick.value; update(); });
+  $("b-name").addEventListener("input", (event) => { dirty = true; state.name = event.target.value.trim(); update(); });
+  $("b-profile").addEventListener("change", (event) => { dirty = true; state.profile = event.target.value; update(); });
+  $("b-yes").addEventListener("change", (event) => { dirty = true; state.yes = event.target.checked; update(); });
+  for (const tab of tabs) tab.addEventListener("click", () => { dirty = true; state.tab = tab.dataset.tab; update(); });
+  for (const pick of picks) pick.addEventListener("change", () => { dirty = true; state.profile = pick.value; update(); });
   update();
 }

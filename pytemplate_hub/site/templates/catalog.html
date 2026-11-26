@@ -52,8 +52,8 @@
       </select>
       <button class="btn filter-toggle" id="filter-toggle" type="button" aria-expanded="false" aria-controls="facets">Filters</button>
     </form>
-    <div class="hints"><span>Try</span>{% for hint in hints %}<button class="hint" type="button" data-hint="{{ hint }}">{{ hint }}</button>{% endfor %}</div>
-    <div class="status"><span id="count" role="status">{{ cards|length }} of {{ cards|length }} packs · {{ profile_count }} profiles</span><span id="expand"></span></div>
+    <div class="hints"><span>Try</span>{% for hint in hints %}<button class="hint" type="button" data-hint="{{ hint }}">{{ hint }}</button>{% endfor %}<span class="kbd-hint">Press <kbd>/</kbd> to search</span></div>
+    <div class="status"><span id="count" role="status">{{ cards|length }} of {{ cards|length }} packs · {{ profile_count }} profiles</span><span id="expand"></span><button class="clear" type="button" id="clear-inline" hidden>Clear filters</button></div>
     <details class="rank">
       <summary>How ranking works</summary>
       <div class="body">
@@ -76,7 +76,7 @@ ties: name</pre>
             <a class="row-title" href="{{ card.owner }}/{{ card.pack_id }}/index.html">{{ card.name }}</a>
             {% if card.tier == "reviewed" %}<span class="badge reviewed">Reviewed</span>{% else %}<span class="badge">Listed</span>{% endif %}
           </div>
-          <div class="row-id">{{ card.identifier }}{% if card.categories %} · {{ card.category_labels|join(', ') }}{% endif %}</div>
+          <div class="row-id"><a class="author-link" href="../authors/{{ card.owner }}/index.html">{{ card.owner }}</a>/{{ card.pack_id }}{% if card.categories %} · {{ card.category_labels|join(', ') }}{% endif %}</div>
           <p class="row-desc">{{ card.description }}</p>
           <div class="chips" aria-label="Profiles">
             {% for profile in card.profiles %}

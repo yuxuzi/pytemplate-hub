@@ -131,14 +131,17 @@ def test_each_pack_has_a_page_with_a_builder_and_both_commands(tmp_path: Path) -
 def test_similar_packs_share_a_category(tmp_path: Path) -> None:
     output = _site(
         tmp_path,
-        ("acme", "one", _entry("acme", name="One", categories=("data",))),
+        ("acme", "one", _entry("acme", name="One", categories=("data",), keywords=("polars",))),
         ("acme", "two", _entry("acme", name="Two", categories=("data",))),
+        ("acme", "best", _entry("acme", name="Best", categories=("data",), keywords=("polars",))),
         ("acme", "three", _entry("acme", name="Three", categories=("web",))),
     )
     page = (output / "templates" / "acme" / "one" / "index.html").read_text(encoding="utf-8")
 
     similar = page.split("Similar packs", 1)[1]
+    assert "Best" in similar
     assert "Two" in similar
+    assert similar.index("Best") < similar.index("Two")
     assert "Three" not in similar
 
 

@@ -88,8 +88,10 @@ def test_build_is_offline_and_writes_all_outputs(tmp_path: Path) -> None:
     shown = build_site(index, output, stars=no_stars, built_on="2026-11-25")
 
     assert shown == 1
-    for name in ("index.html", "index.json", "index.schema.json"):
+    for name in ("index.html", "index.json", "index.schema.json", "llms.txt"):
         assert (output / name).is_file(), name
+    assert (output / "authors" / "acme" / "index.html").is_file()
+    assert (output / "badge" / "acme" / "tools.svg").is_file()
     for asset in (
         "css/site.css",
         "js/copy.js",
@@ -250,3 +252,41 @@ def test_newest_packs_are_the_most_recently_checked(tmp_path: Path) -> None:
 
     newest_block = page.split('aria-label="3 of 3', 1)[1].split("</section>", 1)[0]
     assert newest_block.index("Newer pack") < newest_block.index("Older pack")
+
+
+def test_hero_features_the_highest_ranked_pack(tmp_path: Path) -> None:
+    alpha = _entry(_version(profiles=(ProfileCheck(id="tool", lifecycle="not-run"),)), name="Alpha")
+    beta = _entry(_version(reviewed_by="octocat"), name="Beta")
+    page = _build(_index(tmp_path, ("alpha", alpha), ("beta", beta)), tmp_path / "site")
+
+    hero = page.split('id="slide-0"', 1)[1].split('id="slide-1"', 1)[0]
+    assert "acme/beta@v1.0.0" in hero
+
+
+def test_author_page_badge_and_llms_txt_are_written_and_escaped(tmp_path: Path) -> None:
+    entry = _entry(_version(tag="v1.0.0"), name=HOSTILE, description=HOSTILE, categories=("cli",))
+    output = tmp_path / "site"
+    _build(_index(tmp_path, ("tools", entry)), output)
+
+    author = (output / "authors" / "acme" / "index.html").read_text(encoding="utf-8")
+    assert "<script>alert" not in author
+    assert "&lt;script&gt;alert" in author
+
+    badge = (output / "badge" / "acme" / "tools.svg").read_text(encoding="utf-8")
+    assert "<svg " in badge
+    assert "listed v1.0.0" in badge
+
+    llms = (output / "llms.txt").read_text(encoding="utf-8")
+    assert "acme/tools@v1.0.0" in llms
+    assert "uvx pytemplate-uv@latest create" in llms
+
+
+def test_learn_pages_include_previous_and_next_links(tmp_path: Path) -> None:
+    output = tmp_path / "site"
+    empty = tmp_path / "index"
+    empty.mkdir()
+    _build(empty, output)
+
+    guide = (output / "learn" / "guide" / "index.html").read_text(encoding="utf-8")
+    assert 'class="pager-link prev"' in guide
+    assert 'class="pager-link next"' in guide
