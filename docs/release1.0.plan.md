@@ -206,3 +206,12 @@ docs); README limits section current; D4 decided; then make the repo public, ena
   pytemplate-hub (the index and the website). User documentation lives on the website only; each
   repository keeps a README that links to it. The pytemplate-web repository is retired.
   Still open: D3's scheduled verify, P0-1, P1-4, P1-6, the `v1.0.0` tag, and the launch posts.
+- 2026-11-25: launch fixes merged. #28: verify-index runs the base commit's tooling and reads the
+  PR's index as data (P0-1); weekly `verify-scheduled.yml` with a separate issue-reporting job (D3);
+  CODEOWNERS (P1-5, effective once branch protection requires code-owner review). #29: `yank`
+  command (C2). #30: star counts with an optional `GITHUB_TOKEN`, one request per repository, one
+  warning (C3); system fonts, so a visit makes no third-party requests. #31: submodules refused,
+  committed line endings on checkout (P1-8, with pytemplate-uv #25), `{package}` after splitting
+  (P1-6), UTC dates; license is a declared claim (P1-4) and file modes are not in the digest, both
+  by decision. Still open: a pytemplate-uv release with #25 and the hub's bound raised to it, the
+  `v1.0.0` tag, posts and feed (deferred until there is a post), and the launch posts.
