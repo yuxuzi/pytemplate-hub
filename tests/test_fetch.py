@@ -55,6 +55,20 @@ def test_symlink_is_refused_before_checkout(
     assert not (tmp_path / "out" / "pytemplate-pack.toml").exists()
 
 
+def test_submodule_is_refused_before_checkout(
+    source: Path, fetcher: GitFetcher, tmp_path: Path
+) -> None:
+    head = git(source, "rev-parse", "HEAD")
+    git(source, "update-index", "--add", "--cacheinfo", f"160000,{head},sub")
+    git(source, "commit", "--quiet", "-m", "submodule")
+    git(source, "tag", "v3.1.0")
+
+    with pytest.raises(FetchError, match=r"git submodule.*sub"):
+        fetcher.fetch(REPOSITORY, "v3.1.0", tmp_path / "out")
+
+    assert not (tmp_path / "out" / "pytemplate-pack.toml").exists()
+
+
 def test_disallowed_protocol_is_refused(source: Path, tmp_path: Path) -> None:
     https_only = GitFetcher(clone_url=lambda _: source.as_uri())
 
