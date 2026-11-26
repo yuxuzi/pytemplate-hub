@@ -152,9 +152,9 @@ Direction: **the catalog as a manifest**. Each listing is a ruled row with a *pi
 terminal running the pinned command with a seal whose digest resolves character by character to
 "matches the hub's check". Quiet everywhere else.
 
-- **Type**: Martian Mono for display (wordmark, headlines, labels; CLI-native and wide), Schibsted
-  Grotesk for text, JetBrains Mono for commands. Fonts are self-hosted on the real site, so a visit
-  makes no third-party requests.
+- **Type**: system font stacks (monospace for display and commands, sans for text), so the site
+  makes no third-party requests. The earlier Martian Mono, Schibsted Grotesk, and JetBrains Mono
+  choice was dropped because the site never self-hosted them.
 - **Color**: cool paper with a green bias, deep ink, and one accent, tag amber, used for pins,
   primary buttons, and the active state. Pass green and review blue are semantic, not accents. A
   full dark theme.
@@ -221,7 +221,7 @@ pytemplate-web/
   templates/           Jinja2 layouts and components
   content/posts/       Markdown posts
   content/learn/       Markdown lessons
-  static/              css/, js/ (search, filters, builder, copy, spotlight), fonts/
+  static/              css/, js/ (search, filters, builder, copy, spotlight)
   data/hub-index.json  a committed snapshot of the hub's index.json
   tests/               pages build offline; links resolve; untrusted entry text is escaped;
                        golden search queries; every page has a title and description

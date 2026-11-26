@@ -290,3 +290,19 @@ def test_learn_pages_include_previous_and_next_links(tmp_path: Path) -> None:
     guide = (output / "learn" / "guide" / "index.html").read_text(encoding="utf-8")
     assert 'class="pager-link prev"' in guide
     assert 'class="pager-link next"' in guide
+
+
+def test_rendered_pages_make_no_google_fonts_requests(tmp_path: Path) -> None:
+    index = _index(tmp_path, ("tools", _entry(_version(), name="Tools", description="Useful")))
+    output = tmp_path / "site"
+    build_site(index, output, stars=no_stars, built_on="2026-11-25")
+
+    pages = sorted(output.rglob("*.html"))
+    assert len(pages) > 1
+    for page in pages:
+        text = page.read_text(encoding="utf-8")
+        assert "fonts.googleapis.com" not in text, page
+        assert "fonts.gstatic.com" not in text, page
+    css = (output / "static" / "css" / "site.css").read_text(encoding="utf-8")
+    assert "fonts.googleapis.com" not in css
+    assert "Martian Mono" not in css
