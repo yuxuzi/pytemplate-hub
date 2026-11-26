@@ -3,7 +3,7 @@
 import dataclasses
 import re
 import shutil
-from datetime import date
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -76,6 +76,31 @@ def test_lifecycle_commands_run_with_no_credentials(
     for _, environment in calls:
         assert "GITHUB_TOKEN" not in environment
         assert environment["HOME"] != str(Path.home())
+
+
+def test_package_name_is_one_argument_in_a_lifecycle_command(
+    pack_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    profile = pack_dir / "tool" / "profile.toml"
+    text = profile.read_text(encoding="utf-8")
+    profile.write_text(
+        text.replace('"uv run pytest"', '"uv run --with {package} pytest"'), encoding="utf-8"
+    )
+    real_plan = api.plan
+
+    def spaced(request: api.RenderRequest) -> api.RenderPlan:
+        return dataclasses.replace(real_plan(request), package_name="one two")
+
+    monkeypatch.setattr(verify.api, "plan", spaced)
+    calls: list[list[str]] = []
+
+    def record(command: list[str], _: Path, __: dict[str, str]) -> tuple[bool, str]:
+        calls.append(command)
+        return True, ""
+
+    check_pack(pack_dir, run_lifecycle=True, runner=record)
+
+    assert calls[1] == ["uv", "run", "--with", "one two", "pytest"]
 
 
 def test_failing_lifecycle_command_fails_the_check(pack_dir: Path) -> None:
@@ -419,7 +444,7 @@ def test_add_records_profile_details_and_the_check_date(
     assert profile.supported_python == ("3.11", "3.12")
     assert profile.dependencies == ("rich", "typer")
     assert profile.security_posture == "Rendering contacts no service."
-    assert load_entry(path).versions[0].checked_on == date.today()
+    assert load_entry(path).versions[0].checked_on == datetime.now(UTC).date()
     assert "checked_on = " in path.read_text(encoding="utf-8")
 
 

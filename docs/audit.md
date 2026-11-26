@@ -1,7 +1,7 @@
 # Launch audit (A1)
 
 Scope: `pytemplate_hub/{schema,fetch,verify,site,cli}.py`, `.github/workflows/*.yml`, `tests/`, read at
-`docs/launch-audit` from `origin/main`. Gap tests: `tests/test_audit_gaps.py` (all `xfail(strict=True)`).
+`docs/launch-audit` from `origin/main`. Gap tests: `tests/test_audit_gaps.py` (one test per gap the audit found; all pass).
 
 ## Summary
 
@@ -69,7 +69,7 @@ Local fixtures only (no network). Probe scripts were run from the scratchpad aga
 | Repository `https://github.com/acme/..` and `/.` | accepted (`schema.py:15`, `:68`) | gap (P2); test `test_repository_name_cannot_be_a_dot_segment` |
 | Manifest pack id `../../escape` through `add_version` (inspection stubbed, local index) | returned a path outside the index, and `escape.toml` was written (`verify.py:186`, `:199-200`) | gap (P1); test `test_manifest_pack_id_cannot_escape_the_index` |
 | Deleting a listed version in a PR (`changed_claims`) | no problem reported (`verify.py:258-275`) | gap (P1); test `test_removing_a_listed_version_is_reported` |
-| Executable bit added to a file | digest unchanged (`fetch.py:28-36`) | gap (P2); test `test_digest_changes_when_a_file_becomes_executable` |
+| Executable bit added to a file | digest unchanged (`fetch.py:28-36`) | gap (P2), accepted by decision; the xfail test was removed. See Resolution (2026-11-25) |
 | Deep trees and large packs | not probed (no fixture size bound in the code; `fetch.py:16` 300 s git timeout only) | unverified |
 
 ## Prioritized issues
@@ -78,17 +78,41 @@ Local fixtures only (no network). Probe scripts were run from the scratchpad aga
 - **P1-1** Manifest pack id writes outside the index (`verify.py:186`). Fix: validate with `PACK_ID` before `entry_path`. Fixed in fix/audit-p1.
 - **P1-2** Non-UTF-8 entry crashes instead of failing as `EntryError` (`schema.py:106-107`). Fix: catch `UnicodeDecodeError` in `load_entry`. Fixed in fix/audit-p1.
 - **P1-3** Deleted listed versions pass `check-claims` (`verify.py:258-275`). Fix: flag any removed or altered listed version. Fixed in fix/audit-p1.
-- **P1-4** Declared license never compared with the license file (`verify.py:97-98`, `:243-250`). Fix: check the declaration or require review.
+- **P1-4** Declared license never compared with the license file (`verify.py:97-98`, `:243-250`). Fix: check the declaration or require review. Resolved by documentation (2026-11-25, see below).
 - **P1-5** No CODEOWNERS on `index/` or hub code (`.github/`). Fix: add `CODEOWNERS`.
-- **P1-6** Lifecycle allow-list is a naming check; `uv run` runs any program; no network isolation (`verify.py:131-133`, `:140-143`). Fix: document as not a sandbox; run in a no-network container.
+- **P1-6** Lifecycle allow-list is a naming check; `uv run` runs any program; no network isolation (`verify.py:131-133`, `:140-143`). Fix: document as not a sandbox; run in a no-network container. Resolved (2026-11-25): `{package}` is substituted after splitting, and the trust page says the allow-list is not a sandbox.
 - **P1-7** Pin `unsafe=False` through `api.render` with a test (`verify.py:114-126`). Fix: add the test. Fixed in fix/audit-p1 (the `_tasks` rejection test already existed; this pins the `RenderRequest` shape, not the value pytemplate-uv passes).
-- **P1-8** EOL and `.gitattributes` may change digests across OSes (`fetch.py:89`; unverified). Fix: verify on Windows; reject EOL attributes.
+- **P1-8** EOL and `.gitattributes` may change digests across OSes (`fetch.py:89`; unverified). Fix: verify on Windows; reject EOL attributes. Resolved (2026-11-25): see Resolution.
 - **P2-1** Tags `v1..0` and `*.lock` accepted (`schema.py:20`). Fix: apply git ref rules before fetching. Fixed in fix/audit-p1.
 - **P2-2** Dot-segment repository names accepted (`schema.py:15`). Fix: refuse `.` and `..` segments. Fixed in fix/audit-p1.
-- **P2-3** Executable bit and empty directories not hashed (`fetch.py:28-36`). Fix: hash a manifest of modes and directories.
-- **P2-4** Submodules silently excluded (`fetch.py:58-73`; unverified). Fix: refuse mode 160000.
+- **P2-3** Executable bit and empty directories not hashed (`fetch.py:28-36`). Fix: hash a manifest of modes and directories. Not changed, by decision (2026-11-25): changing the digest would change every recorded pin. Documented on the trust and packs pages.
+- **P2-4** Submodules silently excluded (`fetch.py:58-73`; unverified). Fix: refuse mode 160000. Resolved (2026-11-25): refused before checkout, with a test in `tests/test_fetch.py`.
 - **P2-5** Stars: no token, no cache, silent failure, unbounded body (`site.py:76-87`). Fix: C3.
 - **P2-6** JSON has no schema file (`site.py:120-121`). Fix: B2.
 - **P2-7** Commit in a `title` attribute is unescaped (`site.py:164`). Fix: escape it. Fixed in fix/audit-p1.
 - **P2-8** Yanking is unrestricted (`verify.py:258-275`). Fix: C2.
 - **P2-9** `manifest["name"]` read outside `try` (`verify.py:108-110`; unverified). Fix: wrap it. Fixed in fix/audit-p1 (pytemplate-uv already rejects a missing or non-text name, so the wrap is a backstop; see the direct tests of `_manifest_text`).
+
+## Resolution (2026-11-25)
+
+Decisions and fixes made after this audit. The rows above are kept as they were found.
+
+- **P1-4 (license).** Decided: the declared SPDX license is the submitter's claim. The hub checks that a
+  license file exists and does not compare its text with the declaration. This is now stated on the trust
+  page ("License requirements"). No check was added.
+- **P2-3 (executable bit and empty directories).** Decided: not part of the digest. Changing the digest
+  would change every recorded pin. Documented on the trust page ("What the digest covers"), the packs page
+  ("The digest"), and the compatibility page. The strict-xfail test
+  `test_digest_changes_when_a_file_becomes_executable` was removed, and the digest now has no test for
+  mode changes.
+- **P2-4 (submodules).** Fixed: `GitFetcher` refuses tree entries with mode 160000 before checkout
+  (`SUBMODULE_MODE`), with a failure-path test. The publish and compatibility pages name the rule.
+- **P1-6 (lifecycle).** Fixed: `{package}` is substituted after `shlex.split`, so a package name stays one
+  argument (test `test_package_name_is_one_argument_in_a_lifecycle_command`). The trust page says the
+  allow-list checks the program name and is not a sandbox.
+- **P1-8 (line endings).** Fixed: both checkouts now pass `core.autocrlf=false` and `core.eol=lf`, so
+  `text=auto` cannot turn LF into CRLF on Windows: the hub's `GitFetcher` here, and pytemplate-uv in
+  yuxuzi/pytemplate-uv#25 (tested on its Windows CI). The hub takes the digest from pytemplate-uv, so a
+  Windows user needs the pytemplate-uv release that contains #25.
+- **Date rows (not in the audit).** `checked_on` and `built_on` now use the UTC date, so a listing and a
+  site build do not depend on the machine's local day.

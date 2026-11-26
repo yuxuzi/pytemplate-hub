@@ -72,7 +72,7 @@ format.
 - Packs follow the same contract and safety rules as the bundled templates:
   - they render with `unsafe=False`;
   - they may not declare `_tasks`, `_migrations`, or `_jinja_extensions`;
-  - they may not contain symlinks.
+  - they may not contain symlinks or git submodules.
 - A pack versions itself: its git tags and its `pytemplate-pack.toml` `version`.
 - A pack listed on [the hub](https://yuxuzi.github.io/pytemplate-hub/) is selected with `-h OWNER/PACK[@TAG]` (`--hub`): the pins are
   read from the hub's index and then checked exactly as the pinned form below. `-h` alone shows
@@ -85,4 +85,5 @@ format.
   cache entry fetches it.
 - The digest format is stable. It is a SHA-256 over every file in the checkout, without `.git`, in
   order of their path components compared as case-sensitive strings. For each file, it hashes the
-  path with forward slashes, a NUL byte, the file's bytes, and another NUL byte.
+  path with forward slashes, a NUL byte, the file's bytes, and another NUL byte. File modes (the
+  executable bit) and empty directories are not part of it, by decision.

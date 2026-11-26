@@ -1,6 +1,7 @@
 """Tests for fetching a tag and computing its digest."""
 
 import hashlib
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -51,6 +52,20 @@ def test_symlink_is_refused_before_checkout(
 
     with pytest.raises(FetchError, match=r"symlink.*stolen"):
         fetcher.fetch(REPOSITORY, "v3.0.0", tmp_path / "out")
+
+    assert not (tmp_path / "out" / "pytemplate-pack.toml").exists()
+
+
+def test_submodule_is_refused_before_checkout(
+    source: Path, fetcher: GitFetcher, tmp_path: Path
+) -> None:
+    head = git(source, "rev-parse", "HEAD")
+    git(source, "update-index", "--add", "--cacheinfo", f"160000,{head},sub")
+    git(source, "commit", "--quiet", "-m", "submodule")
+    git(source, "tag", "v3.1.0")
+
+    with pytest.raises(FetchError, match=r"git submodule.*sub"):
+        fetcher.fetch(REPOSITORY, "v3.1.0", tmp_path / "out")
 
     assert not (tmp_path / "out" / "pytemplate-pack.toml").exists()
 
@@ -121,3 +136,17 @@ def test_digest_does_not_depend_on_where_the_pack_was_fetched(
     fetcher.fetch(REPOSITORY, "v1.0.0", tmp_path / "two")
 
     assert directory_digest(tmp_path / "one") == directory_digest(tmp_path / "two")
+
+
+def test_git_checks_out_committed_line_endings(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[list[str]] = []
+
+    def fake_run(command: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+        calls.append(command)
+        return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    GitFetcher()._git(Path("."), "status")
+
+    assert "core.autocrlf=false" in calls[0]
+    assert "core.eol=lf" in calls[0]

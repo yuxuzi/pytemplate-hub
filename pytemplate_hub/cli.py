@@ -1,6 +1,6 @@
 """Command-line interface for pytemplate-hub."""
 
-from datetime import date
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated
 
@@ -138,7 +138,7 @@ def site(
             index,
             output,
             stars=star_source if star_source is not None else no_stars,
-            built_on=date.today().isoformat(),
+            built_on=datetime.now(UTC).date().isoformat(),
         )
     except HubError as error:
         errors.print(str(error), markup=False, soft_wrap=True)

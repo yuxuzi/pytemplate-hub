@@ -16,6 +16,7 @@ from pytemplate_hub.errors import FetchError
 
 GIT_TIMEOUT_SECONDS = 300.0
 SYMLINK_MODE = "120000"
+SUBMODULE_MODE = "160000"
 
 
 def directory_digest(root: Path) -> str:
@@ -63,18 +64,21 @@ class GitFetcher:
         destination.mkdir(parents=True)
         self._git(destination, "init", "--quiet")
         self._git(destination, "fetch", "--quiet", "--depth", "1", url, f"refs/tags/{tag}")
-        self._refuse_symlinks(destination)
+        self._refuse_unsafe_entries(destination)
         self._git(destination, "checkout", "--quiet", "--detach", "FETCH_HEAD")
         commit = self._git(destination, "rev-parse", "HEAD").strip()
         _remove_tree(destination / ".git")
         return commit
 
-    def _refuse_symlinks(self, directory: Path) -> None:
+    def _refuse_unsafe_entries(self, directory: Path) -> None:
+        """Refuse symlinks and submodules, read from git's own tree, before checkout."""
         listing = self._git(directory, "ls-tree", "-r", "-z", "FETCH_HEAD")
         for item in filter(None, listing.split("\0")):
             details, name = item.split("\t", 1)
             if details.startswith(SYMLINK_MODE):
                 raise FetchError(f"The pack contains a symlink, which is not allowed: {name}")
+            if details.startswith(SUBMODULE_MODE):
+                raise FetchError(f"The pack contains a git submodule, which is not allowed: {name}")
 
     def _git(self, directory: Path, *arguments: str) -> str:
         git = shutil.which("git")
@@ -89,7 +93,18 @@ class GitFetcher:
         }
         try:
             completed = subprocess.run(
-                [git, "-c", "core.hooksPath=" + os.devnull, *arguments],
+                [
+                    git,
+                    "-c",
+                    "core.hooksPath=" + os.devnull,
+                    # Check out the committed bytes on every OS, as pytemplate-uv does, so a
+                    # pack's `text=auto` cannot change its digest on Windows.
+                    "-c",
+                    "core.autocrlf=false",
+                    "-c",
+                    "core.eol=lf",
+                    *arguments,
+                ],
                 cwd=directory,
                 env=environment,
                 capture_output=True,

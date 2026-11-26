@@ -15,7 +15,7 @@ A pack can be listed only when all of these are true:
   with no `.git` suffix.
 - It has a license file at the root: `LICENSE`, `LICENSE.md`, `LICENSE.txt`, or `COPYING`.
 - It has at least one profile.
-- It contains no symlinks.
+- It contains no symlinks and no git submodules. The hub refuses both before it checks anything.
 - It does not use the Copier settings `_tasks`, `_migrations`, or `_jinja_extensions`. The checks
   refuse them.
 - Its lifecycle commands start with `uv`, for example `uv sync` and `uv run pytest`. Other programs

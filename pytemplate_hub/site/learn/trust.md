@@ -38,7 +38,8 @@ day they ran.
   symlinks are rejected. The hub's own code rejects symlinks in a fetched pack.
 - That protection covers rendering only. **A generated project's dependencies, build backend, and
   tests still run code when you use them.** Read a pack before you run what it generates.
-- Lifecycle commands must start with `uv`. Any other program is refused.
+- Lifecycle commands must start with `uv`. Any other program is refused. This is a check on the
+  program's name, not a sandbox: `uv run` can run any program the pack's code names.
 - `uv run` still runs the pack's own code. `--run-lifecycle` therefore executes that code. Use it only
   on an isolated machine with no credentials.
 - A lifecycle command runs with only `PATH` and `SYSTEMROOT` from the environment. `HOME` points to an
@@ -62,8 +63,18 @@ day they ran.
   `LICENSE.txt`, or `COPYING`. The hub checks that the file exists.
 - The `--license` value is your declaration. It is recorded as `license` and must match
   `^[A-Za-z0-9][A-Za-z0-9.+ ()-]*$`, for example `MIT` or `Apache-2.0`.
-- The hub does not read the license text, and it does not check that the declaration matches the
-  file.
+- The declared license is the submitter's claim. The hub does not read the license text, and it
+  does not check that the declaration matches the file. A wrong declaration is not reported. Read
+  the license file yourself before you rely on the `license` field.
+
+## What the digest covers
+
+- The digest is a SHA-256 over each regular file's path and bytes (see
+  [Template packs](packs.md#the-digest)). It does not cover file modes, so a file that becomes
+  executable keeps its digest, and it does not record empty directories.
+- This is by decision, not an oversight: changing what the digest covers would change every digest
+  already recorded and pinned, so every pinned command would stop matching. The files that run are
+  still the files that were checked, but their executable bit is not part of what was checked.
 
 ## Limits
 
