@@ -215,3 +215,5 @@ docs); README limits section current; D4 decided; then make the repo public, ena
   (P1-6), UTC dates; license is a declared claim (P1-4) and file modes are not in the digest, both
   by decision. Still open: a pytemplate-uv release with #25 and the hub's bound raised to it, the
   `v1.0.0` tag, posts and feed (deferred until there is a post), and the launch posts.
+- 2026-11-25: pytemplate-uv 3.7.1 released; the hub requires it (#33). The user decided to keep
+  `main` without branch protection. Version 1.0.0, tagged `v1.0.0` on the user's word.

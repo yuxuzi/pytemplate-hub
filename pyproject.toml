@@ -1,6 +1,6 @@
 [project]
 name = "pytemplate-hub"
-version = "0.1.0"
+version = "1.0.0"
 description = "A static, verified index of pytemplate-uv template packs"
 readme = "README.md"
 requires-python = ">=3.11"
