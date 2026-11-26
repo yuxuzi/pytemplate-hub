@@ -2,6 +2,7 @@
 
 import dataclasses
 import re
+import shutil
 from datetime import date
 from pathlib import Path
 
@@ -10,7 +11,7 @@ from pydantic import ValidationError
 from pytemplate import api
 
 from pytemplate_hub import verify
-from pytemplate_hub.errors import FetchError, PackCheckError
+from pytemplate_hub.errors import EntryError, FetchError, PackCheckError
 from pytemplate_hub.fetch import GitFetcher
 from pytemplate_hub.schema import (
     Entry,
@@ -27,6 +28,7 @@ from pytemplate_hub.verify import (
     check_pack,
     entry_files,
     verify_entry,
+    yank_version,
 )
 from tests.conftest import REPOSITORY, commit_all, git
 
@@ -590,4 +592,68 @@ def test_add_refuses_a_pack_that_declares_no_category(
         PackCheckError, match=r"declares no categories.*one or two of: cli, library"
     ):
         _add(tmp_path / "index", fetcher)
+    assert not (tmp_path / "index").exists()
+
+
+def test_yank_sets_only_the_yanked_field(source: Path, fetcher: GitFetcher, tmp_path: Path) -> None:
+    index = tmp_path / "index"
+    base = tmp_path / "base"
+    _add(index, fetcher)
+    shutil.copytree(index, base)
+    before = load_entry(index / "acme" / "sample-pack.toml")
+
+    path = yank_version(index, "acme", "sample-pack", "v1.0.0", "  Fails on 3.13.  ")
+
+    assert path == index / "acme" / "sample-pack.toml"
+    after = load_entry(path)
+    assert after.versions[0].yanked == "Fails on 3.13."
+    assert after.versions[0].model_copy(update={"yanked": None}) == before.versions[0]
+    assert after.model_copy(update={"versions": before.versions}) == before
+    assert changed_claims(base, index) == []
+
+
+def test_yank_refuses_an_unknown_entry(tmp_path: Path) -> None:
+    with pytest.raises(EntryError, match="does not exist"):
+        yank_version(tmp_path / "index", "acme", "sample-pack", "v1.0.0", "Broken")
+
+
+def test_yank_refuses_an_unknown_tag_and_lists_the_tags(
+    source: Path, fetcher: GitFetcher, tmp_path: Path
+) -> None:
+    index = tmp_path / "index"
+    _add(index, fetcher)
+
+    with pytest.raises(EntryError, match=r"Listed tags: v1\.0\.0\."):
+        yank_version(index, "acme", "sample-pack", "v9.9.9", "Broken")
+
+
+def test_yank_refuses_a_version_already_yanked(
+    source: Path, fetcher: GitFetcher, tmp_path: Path
+) -> None:
+    index = tmp_path / "index"
+    _add(index, fetcher)
+    yank_version(index, "acme", "sample-pack", "v1.0.0", "First reason")
+
+    with pytest.raises(EntryError, match="First reason"):
+        yank_version(index, "acme", "sample-pack", "v1.0.0", "Second reason")
+
+
+@pytest.mark.parametrize("reason", ["", "   \n\t "])
+def test_yank_refuses_an_empty_reason(
+    source: Path, fetcher: GitFetcher, tmp_path: Path, reason: str
+) -> None:
+    index = tmp_path / "index"
+    _add(index, fetcher)
+
+    with pytest.raises(EntryError, match="needs a reason"):
+        yank_version(index, "acme", "sample-pack", "v1.0.0", reason)
+    assert load_entry(index / "acme" / "sample-pack.toml").versions[0].yanked is None
+
+
+@pytest.mark.parametrize(("owner", "pack_id"), [("ac/me", "sample-pack"), ("acme", "Sample_Pack")])
+def test_yank_validates_owner_and_pack_id_before_building_a_path(
+    tmp_path: Path, owner: str, pack_id: str
+) -> None:
+    with pytest.raises(EntryError, match="not a valid entry"):
+        yank_version(tmp_path / "index", owner, pack_id, "v1.0.0", "Broken")
     assert not (tmp_path / "index").exists()
