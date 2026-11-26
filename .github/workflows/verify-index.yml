@@ -32,7 +32,6 @@ jobs:
         with:
           path: head
           persist-credentials: false
-          fetch-depth: 0
       - uses: astral-sh/setup-uv@v10.3.2
       - name: Install the base commit's tooling
         working-directory: base
