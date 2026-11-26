@@ -212,7 +212,8 @@ def _check_profile(
         home.mkdir()
         environment = _lifecycle_environment(home)
         for line in result.resolution.lifecycle_commands:
-            command = shlex.split(line.replace("{package}", plan.package_name))
+            # Split first, then substitute, so a package name is always one argument.
+            command = [token.replace("{package}", plan.package_name) for token in shlex.split(line)]
             if not command or command[0] not in ALLOWED_PROGRAMS:
                 raise PackCheckError(f"Profile {profile!r} declares a disallowed command: {line}")
             succeeded, output = runner(command, result.project_path, environment)
