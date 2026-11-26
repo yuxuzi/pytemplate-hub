@@ -105,3 +105,8 @@ path components compared as case-sensitive strings. For each file, it hashes the
 slashes, a NUL byte, the file's bytes, and another NUL byte. pytemplate-uv and the hub compute it
 the same way, so a digest the hub records is one pytemplate-uv can check. The format is stable:
 see [Compatibility and versioning](compatibility.md#template-packs).
+
+The digest does not cover file modes (so the executable bit) or empty directories. This is by
+decision: changing it would change every recorded digest and pin. A change that only sets the
+executable bit therefore keeps the digest, and the trust page explains the consequence
+([What the digest covers](trust.md#what-the-digest-covers)).

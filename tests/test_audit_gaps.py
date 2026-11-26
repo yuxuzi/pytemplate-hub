@@ -1,19 +1,17 @@
 """Gaps found by the launch audit (docs/audit.md).
 
-Each test states the behaviour the hub should have. Every test is xfail(strict=True): it fails
-today, and its marker must be removed when the gap is fixed.
+Each test states the behaviour the hub has once a gap is fixed. Gaps the maintainer decided to
+accept (the executable bit) have no test here; see docs/audit.md, Resolution (2026-11-25).
 """
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 import pytest
 
 from pytemplate_hub import verify
 from pytemplate_hub.errors import HubError
-from pytemplate_hub.fetch import directory_digest
 from pytemplate_hub.schema import Entry, ProfileCheck, Version, dump_entry, load_entry
 from pytemplate_hub.verify import Inspected, add_version, changed_claims
 
@@ -75,18 +73,3 @@ def test_removing_a_listed_version_is_reported(tmp_path: Path) -> None:
         path.write_text(dump_entry(entry), encoding="utf-8")
 
     assert changed_claims(base, head) != []
-
-
-@pytest.mark.xfail(
-    strict=True,
-    reason="audit digest: the executable bit is not hashed, so a mode change keeps the digest",
-)
-@pytest.mark.skipif(sys.platform == "win32", reason="POSIX file modes")
-def test_digest_changes_when_a_file_becomes_executable(tmp_path: Path) -> None:
-    script = tmp_path / "run.sh"
-    script.write_text("echo hi\n", encoding="utf-8")
-    script.chmod(0o644)
-    before = directory_digest(tmp_path)
-    script.chmod(0o755)
-
-    assert directory_digest(tmp_path) != before
