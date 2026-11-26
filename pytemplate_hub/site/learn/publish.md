@@ -198,18 +198,19 @@ ran.
 
 ## 7. Yank a version
 
-To stop showing a version, add a `yanked` reason to its block in the entry:
+Yanking hides a listed version from the site, and `verify` stops re-checking it. The version's
+entry stays in the index with its reason, so the record of what was listed remains. The latest
+version that is not yanked is the one the name, description, categories, and keywords come from.
 
-```toml
-[[versions]]
-tag = "v1.0.0"
-# ...the other fields stay as they are...
-yanked = "Fails on Python 3.13. Use v1.0.1."
+To yank a version, run `yank` with the pack as `OWNER/PACK`, the tag, and the reason users will see:
+
+```bash
+uv run pytemplate_hub yank <you>/<pack> v1.0.0 --reason "Fails on Python 3.13. Use v1.0.1."
 ```
 
-Only `reviewed_by` and `yanked` may change on a listed version, so this change passes
-`check-claims`. `verify` does not re-check a yanked version. The hub has no `yank` command yet, so
-make this edit by hand in a pull request.
+The command changes only the version's `yanked` field in its entry, so the change passes
+`check-claims`. It refuses a tag the entry does not list, and a version that is already yanked.
+Commit the entry file and open a pull request, as in step 5.
 
 ## 8. What "reviewed" means
 
