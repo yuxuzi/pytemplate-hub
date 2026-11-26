@@ -883,7 +883,7 @@ requires-dist = [
     { name = "jinja2", specifier = ">=3.1" },
     { name = "markdown-it-py", specifier = ">=3" },
     { name = "pydantic", specifier = ">=2.7" },
-    { name = "pytemplate-uv", specifier = ">=3.6,<4" },
+    { name = "pytemplate-uv", specifier = ">=3.7,<4" },
     { name = "rich", specifier = ">=13.7" },
     { name = "typer", specifier = ">=0.12" },
 ]
@@ -898,7 +898,7 @@ dev = [
 
 [[package]]
 name = "pytemplate-uv"
-version = "3.6.0"
+version = "3.7.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "copier" },
@@ -906,9 +906,9 @@ dependencies = [
     { name = "rich" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/12/8f/1cf91420de427a7a8eb53131add5e1614db8caee2d667e54c474331a82f9/pytemplate_uv-3.6.0.tar.gz", hash = "sha256:396c3eb632e141f0eef00558faa45d41dac0660f772aab716947c90187f96fa7", size = 148448, upload-time = "2026-11-25T22:54:00.92Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/db/aa/34200f1b872fd367f6731f63b7c5f638bf0501fc95a5c1140aa70e969f48/pytemplate_uv-3.7.0.tar.gz", hash = "sha256:0175922a76c2d150a9a7960901c0770ba47c9d679cacebc365da751b184027ae", size = 149256, upload-time = "2026-11-26T00:26:11.251Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/dc/82/12830dd4a9250812f51031c83b3c749b1db800a88dfe8e311bc524b6dc87/pytemplate_uv-3.6.0-py3-none-any.whl", hash = "sha256:379673835a01a3c272efb718bb51811465396b0e517ab49edc2cd4ba9cb6d3e3", size = 162646, upload-time = "2026-11-25T22:53:59.416Z" },
+    { url = "https://files.pythonhosted.org/packages/b9/f4/3acfc92a3914f50179d1be5bd351cd0855ee81ec820af6fe980fa155d0cb/pytemplate_uv-3.7.0-py3-none-any.whl", hash = "sha256:ede88546fe6a3b098df2cbbb74d7b4bc08672c93dffd0c38f967efe1eb8bc878", size = 162888, upload-time = "2026-11-26T00:26:09.788Z" },
 ]
 
 [[package]]
