@@ -43,7 +43,7 @@ A pack has the same layout as the bundled templates:
 
 ```text
 my-pack/
-  pytemplate-pack.toml       # contract = 1, id, name, description, version; optional categories, keywords
+  pytemplate-pack.toml       # contract = 1, id, name, description, version; categories, keywords
   copier.yml                 # _subdirectory: "{{ profile }}/template"; --- !include questions.yml
   questions.yml              # profile, project_name, package_name, components, ...
   <profile>/profile.toml     # the profile manifest (pytemplate schema profile)
@@ -66,11 +66,11 @@ The rules:
   `_external_data`, and symlinks are rejected, including in files a pack's `copier.yml` includes.
 - Pack-generated projects record the pack's source and tag, and for a git pack its commit and
   digest too.
-- `pytemplate-pack.toml` may list `categories` (lowercase slugs: letters, digits, and hyphens,
-  starting with a letter) and `keywords` (at most 12 lowercase strings of 1 to 30 characters, with
-  no spaces at either end). Both are optional and checked for shape only; the hub decides their
-  vocabulary (see [Publish a pack](publish.md#1-check-that-your-pack-can-be-listed)). Wrong shapes
-  are refused with the key named.
+- `pytemplate-pack.toml` lists `categories` from a fixed list: `cli`, `library`, `web`, `worker`,
+  `data`, `ai`, and `quant` (pytemplate-uv 3.7 or later refuses any other, with a suggestion). They
+  are optional for a pack you only use yourself, and required to list it on the hub
+  ([Publish a pack](publish.md#1-check-that-your-pack-can-be-listed)). `keywords` are free search
+  words: at most 12 lowercase strings of 1 to 30 characters, with no spaces at either end.
 - Each profile's `lifecycle_commands` are the checks a project rendered with default answers must
   pass; the hub runs them before listing a pack.
 - `pytemplate schema pack`, `schema profile`, and `schema component` print the full formats. The

@@ -540,7 +540,9 @@ def test_verify_reports_categories_and_keywords_that_the_pack_no_longer_has(
 
     problems = verify_entry(path, fetcher)
 
-    assert f"{path} v1.0.0: the categories changed: listed (), found ('web',)." in problems
+    assert (
+        f"{path} v1.0.0: the categories changed: listed ('library',), found ('web',)." in problems
+    )
     assert f"{path} v1.0.0: the keywords changed: listed (), found ('api',)." in problems
 
 
@@ -571,3 +573,21 @@ def test_manifest_reads_categories_and_keywords(tmp_path: Path) -> None:
     )
 
     assert verify._manifest(tmp_path) == ("T", "D", ("web", "ai"), ("fastapi",))
+
+
+def test_add_refuses_a_pack_that_declares_no_category(
+    fetcher: GitFetcher, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    real = verify.inspect_version
+
+    def without(*args: object, **kwargs: object) -> Inspected:
+        found = real(*args, **kwargs)  # type: ignore[arg-type]
+        return dataclasses.replace(found, categories=())
+
+    monkeypatch.setattr(verify, "inspect_version", without)
+
+    with pytest.raises(
+        PackCheckError, match=r"declares no categories.*one or two of: cli, library"
+    ):
+        _add(tmp_path / "index", fetcher)
+    assert not (tmp_path / "index").exists()

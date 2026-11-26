@@ -23,8 +23,15 @@ A pack can be listed only when all of these are true:
 - Each profile's `profile.toml` sets `name`, `description`, and `kind` (`cli`, `library`, or
   `service`). It may also set `supported_python`, `dependencies`, and `security_posture`. The hub
   records these and checks them on every `verify`. Dependencies are recorded by name only.
-- `pytemplate-pack.toml` may set two optional lists for the hub. `categories` takes ids from this
-  table, and `keywords` takes up to 12 search words of up to 30 lowercase characters:
+- `pytemplate-pack.toml` must set `categories`: one or two ids from this fixed list, which decide
+  where the site files the pack. It may also set `keywords`: up to 12 search words of up to 30
+  lowercase characters, for search only.
+
+  ```toml
+  categories = ["web"]
+  keywords = ["fastapi", "rest", "api"]
+  ```
+
 
   | id | Label |
   | --- | --- |
@@ -36,8 +43,9 @@ A pack can be listed only when all of these are true:
   | `ai` | AI tools and MCP |
   | `quant` | Quant research |
 
-  The hub records the categories. A category not in this table is refused. A new category needs a
-  change to `pytemplate_hub/categories.toml` in a pull request to the hub.
+  The list is fixed by pytemplate-uv, which refuses any other category while you write the pack
+  (3.7 or later). A pack with no category cannot be listed: `add` refuses it and names the choices.
+  New categories come in later pytemplate-uv releases.
 
   Packs that set `categories` or `keywords` need pytemplate-uv 3.4 or later. An older version
   refuses those keys, so `add` fails with `unknown key(s)`.
@@ -165,6 +173,7 @@ Reading the failures:
 | `the pack version changed`, `the pack id changed`, or `the profiles changed` | The pack's manifest or profiles differ from the entry | Restore the tag's values, or publish a new tag and list it. |
 | `the profile <id> <field> changed`, `the categories changed`, or `the keywords changed` | The profile's `profile.toml`, or the pack's categories or keywords, differ from the entry | Restore the tag's values, or publish a new tag and list it. verify skips a detail that the entry does not record. |
 | `unknown category` | A category is not in the table in this guide | Use one of the listed ids. |
+| `declares no categories` | `pytemplate-pack.toml` has no `categories` | Add one or two ids from the table, tag again, and list the new tag. |
 | `unknown key(s) categories` or `unknown key(s) keywords` | The pytemplate-uv that `add` uses is older than 3.4 | Use pytemplate-uv 3.4 or later, then tag and list again. |
 | `has no license file` | No license file at the root | Add the file, push a new tag, and list it. |
 | `has no profiles` or `The pack failed its checks` | The pack does not render, or it is not a contract 1 pack | Fix the pack, push a new tag, and list it. |
