@@ -9,7 +9,7 @@ import tempfile
 import tomllib
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import date
+from datetime import UTC, datetime
 from importlib.metadata import version as installed_version
 from pathlib import Path
 from typing import Any
@@ -310,7 +310,7 @@ def add_version(
             raise PackCheckError(f"{path} already lists this pack from {entry.repository}.")
         if any(listed.tag == tag for listed in entry.versions):
             raise PackCheckError(f"{path} already lists {tag}.")
-    listed = found.version.model_copy(update={"checked_on": date.today()})
+    listed = found.version.model_copy(update={"checked_on": datetime.now(UTC).date()})
     updated = Entry(
         repository=repository,
         name=found.name,

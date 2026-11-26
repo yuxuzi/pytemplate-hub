@@ -3,7 +3,7 @@
 import dataclasses
 import re
 import shutil
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pytest
@@ -444,7 +444,7 @@ def test_add_records_profile_details_and_the_check_date(
     assert profile.supported_python == ("3.11", "3.12")
     assert profile.dependencies == ("rich", "typer")
     assert profile.security_posture == "Rendering contacts no service."
-    assert load_entry(path).versions[0].checked_on == date.today()
+    assert load_entry(path).versions[0].checked_on == datetime.now(UTC).date()
     assert "checked_on = " in path.read_text(encoding="utf-8")
 
 
