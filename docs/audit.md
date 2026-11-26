@@ -82,7 +82,7 @@ Local fixtures only (no network). Probe scripts were run from the scratchpad aga
 - **P1-5** No CODEOWNERS on `index/` or hub code (`.github/`). Fix: add `CODEOWNERS`.
 - **P1-6** Lifecycle allow-list is a naming check; `uv run` runs any program; no network isolation (`verify.py:131-133`, `:140-143`). Fix: document as not a sandbox; run in a no-network container. Resolved (2026-11-25): `{package}` is substituted after splitting, and the trust page says the allow-list is not a sandbox.
 - **P1-7** Pin `unsafe=False` through `api.render` with a test (`verify.py:114-126`). Fix: add the test. Fixed in fix/audit-p1 (the `_tasks` rejection test already existed; this pins the `RenderRequest` shape, not the value pytemplate-uv passes).
-- **P1-8** EOL and `.gitattributes` may change digests across OSes (`fetch.py:89`; unverified). Fix: verify on Windows; reject EOL attributes. Resolved (2026-11-25) in pytemplate-uv by checking out with `core.eol=lf`; see Resolution for the version check still needed.
+- **P1-8** EOL and `.gitattributes` may change digests across OSes (`fetch.py:89`; unverified). Fix: verify on Windows; reject EOL attributes. Resolved (2026-11-25): see Resolution.
 - **P2-1** Tags `v1..0` and `*.lock` accepted (`schema.py:20`). Fix: apply git ref rules before fetching. Fixed in fix/audit-p1.
 - **P2-2** Dot-segment repository names accepted (`schema.py:15`). Fix: refuse `.` and `..` segments. Fixed in fix/audit-p1.
 - **P2-3** Executable bit and empty directories not hashed (`fetch.py:28-36`). Fix: hash a manifest of modes and directories. Not changed, by decision (2026-11-25): changing the digest would change every recorded pin. Documented on the trust and packs pages.
@@ -110,10 +110,9 @@ Decisions and fixes made after this audit. The rows above are kept as they were 
 - **P1-6 (lifecycle).** Fixed: `{package}` is substituted after `shlex.split`, so a package name stays one
   argument (test `test_package_name_is_one_argument_in_a_lifecycle_command`). The trust page says the
   allow-list checks the program name and is not a sandbox.
-- **P1-8 (line endings).** Reported as fixed in pytemplate-uv by checking out with `core.eol=lf`. Not
-  verified here: the pytemplate-uv 3.7.0 installed in this worktree (the version `pyproject.toml` pins at
-  `>=3.7,<4`) contains no `core.eol` setting, so the fix is in a release this hub does not yet use, or it is
-  not there. Confirm against the release the hub pins, and run a Windows check, before calling this closed.
-  The hub's own `GitFetcher` still applies `.gitattributes` EOL rules at checkout.
+- **P1-8 (line endings).** Fixed: both checkouts now pass `core.autocrlf=false` and `core.eol=lf`, so
+  `text=auto` cannot turn LF into CRLF on Windows: the hub's `GitFetcher` here, and pytemplate-uv in
+  yuxuzi/pytemplate-uv#25 (tested on its Windows CI). The hub takes the digest from pytemplate-uv, so a
+  Windows user needs the pytemplate-uv release that contains #25.
 - **Date rows (not in the audit).** `checked_on` and `built_on` now use the UTC date, so a listing and a
   site build do not depend on the machine's local day.

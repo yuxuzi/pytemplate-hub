@@ -93,7 +93,18 @@ class GitFetcher:
         }
         try:
             completed = subprocess.run(
-                [git, "-c", "core.hooksPath=" + os.devnull, *arguments],
+                [
+                    git,
+                    "-c",
+                    "core.hooksPath=" + os.devnull,
+                    # Check out the committed bytes on every OS, as pytemplate-uv does, so a
+                    # pack's `text=auto` cannot change its digest on Windows.
+                    "-c",
+                    "core.autocrlf=false",
+                    "-c",
+                    "core.eol=lf",
+                    *arguments,
+                ],
                 cwd=directory,
                 env=environment,
                 capture_output=True,

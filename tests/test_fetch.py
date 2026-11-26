@@ -1,6 +1,7 @@
 """Tests for fetching a tag and computing its digest."""
 
 import hashlib
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -135,3 +136,17 @@ def test_digest_does_not_depend_on_where_the_pack_was_fetched(
     fetcher.fetch(REPOSITORY, "v1.0.0", tmp_path / "two")
 
     assert directory_digest(tmp_path / "one") == directory_digest(tmp_path / "two")
+
+
+def test_git_checks_out_committed_line_endings(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[list[str]] = []
+
+    def fake_run(command: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+        calls.append(command)
+        return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    GitFetcher()._git(Path("."), "status")
+
+    assert "core.autocrlf=false" in calls[0]
+    assert "core.eol=lf" in calls[0]
