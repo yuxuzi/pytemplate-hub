@@ -1,11 +1,11 @@
 # pytemplate-hub
 
-A static, verified index of [pytemplate-uv](https://github.com/yuxuzi/pytemplate-uv) template packs,
-and the website for both projects.
+A verified index of [pytemplate-uv](https://github.com/yuxuzi/pytemplate-uv) template packs, built
+as a static website that also holds the documentation for both projects.
 
-**Website: <https://yuxuzi.github.io/pytemplate-hub/>.** Find a pack, copy its command, and read
-the tutorial and the guides there. This README covers the repository; the documentation lives on
-the website only.
+**Website: <https://yuxuzi.github.io/pytemplate-hub/>.** Browse the packs, copy the command that
+creates a project from one, and read the tutorial and guides. This README is about the repository
+itself; all user documentation is on the website.
 
 ## Find a template
 
