@@ -17,11 +17,12 @@ from typing import Any
 from pydantic import ValidationError
 from pytemplate import api
 
-from pytemplate_hub.errors import FetchError, HubError, PackCheckError
+from pytemplate_hub.errors import EntryError, FetchError, HubError, PackCheckError
 from pytemplate_hub.fetch import GitFetcher, directory_digest
 from pytemplate_hub.schema import (
     CATEGORIES,
     GITHUB_URL,
+    LOGIN,
     PACK_ID,
     Entry,
     ProfileCheck,
@@ -319,6 +320,45 @@ def add_version(
     )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(dump_entry(updated), encoding="utf-8")
+    return path
+
+
+def yank_version(index: Path, owner: str, pack_id: str, tag: str, reason: str) -> Path:
+    """Yank ``tag`` of ``owner/pack_id`` with ``reason``, and return the entry's path.
+
+    Yanking hides a version from the site and from ``latest``, and ``verify`` stops re-checking it.
+    Only the version's ``yanked`` field changes, so ``check-claims`` accepts the change. The reason
+    is stripped and must not be empty. Refuses an unknown entry, an unknown tag, and a version
+    that is already yanked.
+    """
+    text = reason.strip()
+    if not text:
+        raise EntryError("A yank needs a reason. Pass --reason with the problem and the fix.")
+    if not LOGIN.fullmatch(owner) or not PACK_ID.fullmatch(pack_id):
+        raise EntryError(
+            f"{owner}/{pack_id} is not a valid entry. The owner must match {LOGIN.pattern} and "
+            f"the pack id must match {PACK_ID.pattern}."
+        )
+    path = entry_path(index, owner, pack_id)
+    if not path.is_file():
+        raise EntryError(
+            f"{path} does not exist. Check the owner and pack id, or add the pack first."
+        )
+    entry = load_entry(path)
+    listed = [version for version in entry.versions if version.tag == tag]
+    if not listed:
+        known = ", ".join(version.tag for version in entry.versions) or "none"
+        raise EntryError(f"{path} does not list {tag!r}. Listed tags: {known}.")
+    target = listed[0]
+    if target.yanked is not None:
+        raise EntryError(
+            f"{path} already yanks {tag!r}, with the reason {target.yanked!r}. Nothing to change."
+        )
+    versions = tuple(
+        version.model_copy(update={"yanked": text}) if version.tag == tag else version
+        for version in entry.versions
+    )
+    path.write_text(dump_entry(entry.model_copy(update={"versions": versions})), encoding="utf-8")
     return path
 
 

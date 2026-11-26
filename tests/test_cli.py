@@ -156,3 +156,28 @@ def test_verify_of_an_empty_index_passes(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     assert "Verified 0 entries" in result.output
+
+
+def test_yank_marks_the_version_and_names_the_file(tmp_path: Path) -> None:
+    index = tmp_path / "index"
+    assert _add(index) == 0
+
+    result = runner.invoke(
+        cli.app,
+        ["yank", "acme/sample-pack", "v1.0.0", "--reason", "Broken", "--index", str(index)],
+    )
+
+    assert result.exit_code == 0
+    assert "Yanked v1.0.0 of acme/sample-pack" in result.output
+    assert load_entry(index / "acme" / "sample-pack.toml").versions[0].yanked == "Broken"
+
+
+@pytest.mark.parametrize("entry", ["acme", "acme/sample/pack", "/sample-pack"])
+def test_yank_reports_a_malformed_entry_without_a_traceback(tmp_path: Path, entry: str) -> None:
+    result = runner.invoke(
+        cli.app, ["yank", entry, "v1.0.0", "--reason", "Broken", "--index", str(tmp_path)]
+    )
+
+    assert result.exit_code == 1
+    assert "is not OWNER/PACK" in result.output or "not a valid entry" in result.output
+    assert result.exception is None or isinstance(result.exception, SystemExit)

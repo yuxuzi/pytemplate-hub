@@ -23,6 +23,7 @@ from pytemplate_hub.errors import EntryError
 
 GITHUB_URL = re.compile(r"^https://github\.com/([A-Za-z0-9-]+)/([A-Za-z0-9._-]+)$")
 PACK_ID = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+LOGIN = re.compile(r"^[A-Za-z0-9-]+$")
 TAG_CHARACTERS = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 DEPENDENCY_NAME = re.compile(r"^\s*([A-Za-z0-9][A-Za-z0-9._-]*)")
 KEYWORD = re.compile(r"^[a-z0-9][a-z0-9+#. -]{0,29}$")
@@ -118,7 +119,7 @@ Tag = Annotated[str, Field(pattern=TAG_CHARACTERS.pattern), AfterValidator(_chec
 Commit = Annotated[str, Field(pattern=r"^[0-9a-f]{40}$")]
 Digest = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
 License = Annotated[str, Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9.+ ()-]*$")]
-GitHubLogin = Annotated[str, Field(pattern=r"^[A-Za-z0-9-]+$")]
+GitHubLogin = Annotated[str, Field(pattern=LOGIN.pattern)]
 
 
 class _Strict(BaseModel):

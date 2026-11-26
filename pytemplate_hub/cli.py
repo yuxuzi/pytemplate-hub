@@ -10,7 +10,13 @@ from rich.console import Console
 from pytemplate_hub.errors import HubError
 from pytemplate_hub.fetch import GitFetcher
 from pytemplate_hub.site import build_site, github_stars, no_stars
-from pytemplate_hub.verify import add_version, changed_claims, entry_files, verify_entry
+from pytemplate_hub.verify import (
+    add_version,
+    changed_claims,
+    entry_files,
+    verify_entry,
+    yank_version,
+)
 
 app = typer.Typer(
     help="Check template packs and maintain the pytemplate-hub index.",
@@ -48,6 +54,30 @@ def add(
         errors.print(str(error), markup=False, soft_wrap=True)
         raise typer.Exit(1) from error
     console.print(f"Recorded {tag} in {path}", markup=False, soft_wrap=True)
+
+
+@app.command()
+def yank(
+    entry: Annotated[str, typer.Argument(help="The pack as OWNER/PACK, for example acme/sample.")],
+    tag: Annotated[str, typer.Argument(help="The listed tag to yank.")],
+    reason: Annotated[str, typer.Option(help="Why the version is yanked, shown to users.")],
+    index: IndexOption = Path("index"),
+) -> None:
+    """Yank a listed version: hide it from the site and stop re-checking it."""
+    owner, separator, pack_id = entry.partition("/")
+    if not separator or "/" in pack_id:
+        errors.print(
+            f"{entry!r} is not OWNER/PACK. Give the owner and the pack id, separated by one slash.",
+            markup=False,
+            soft_wrap=True,
+        )
+        raise typer.Exit(1)
+    try:
+        path = yank_version(index, owner, pack_id, tag, reason)
+    except (HubError, ValueError) as error:
+        errors.print(str(error), markup=False, soft_wrap=True)
+        raise typer.Exit(1) from error
+    console.print(f"Yanked {tag} of {owner}/{pack_id} in {path}", markup=False, soft_wrap=True)
 
 
 @app.command("check-claims")
