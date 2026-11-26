@@ -2,6 +2,7 @@
 
 import io
 import json
+import urllib.error
 import urllib.request
 from datetime import date
 from pathlib import Path
@@ -12,6 +13,8 @@ import pytest
 from pytemplate_hub.errors import EntryError
 from pytemplate_hub.schema import Entry, ProfileCheck, Version, dump_entry, load_entry
 from pytemplate_hub.site import (
+    MAX_STARS_BYTES,
+    GitHubStars,
     build_site,
     create_command,
     github_stars,
@@ -224,6 +227,85 @@ def test_github_stars_is_none_when_github_is_unreachable(monkeypatch: pytest.Mon
     monkeypatch.setattr(urllib.request, "urlopen", fail)
 
     assert github_stars(Entry(repository="https://github.com/acme/repo")) is None
+
+
+def test_github_token_is_sent_as_a_bearer_header_only_when_set(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    headers: list[dict[str, str]] = []
+
+    def fake(request: urllib.request.Request, timeout: float) -> _Response:
+        headers.append({key.lower(): value for key, value in request.header_items()})
+        return _Response(b'{"stargazers_count": 1}')
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake)
+    entry = Entry(repository="https://github.com/acme/repo")
+
+    monkeypatch.setenv("GITHUB_TOKEN", "ghp_secret")
+    GitHubStars()(entry)
+    monkeypatch.setenv("GITHUB_TOKEN", "   ")
+    GitHubStars()(entry)
+    monkeypatch.delenv("GITHUB_TOKEN")
+    GitHubStars()(entry)
+
+    assert headers[0]["authorization"] == "Bearer ghp_secret"
+    assert "authorization" not in headers[1]
+    assert "authorization" not in headers[2]
+
+
+def test_each_repository_is_requested_once_per_build(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: list[str] = []
+
+    def fake(request: urllib.request.Request, timeout: float) -> _Response:
+        seen.append(request.full_url)
+        return _Response(b'{"stargazers_count": 9}')
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake)
+    stars = GitHubStars()
+    first = stars(Entry(repository="https://github.com/acme/repo"))
+    second = stars(Entry(repository="https://github.com/acme/repo"))
+
+    assert (first, second) == (9, 9)
+    assert seen == ["https://api.github.com/repos/acme/repo"]
+
+
+def test_an_oversize_body_is_unavailable_and_recorded(monkeypatch: pytest.MonkeyPatch) -> None:
+    body = b'{"stargazers_count": 5, "pad": "' + b"a" * MAX_STARS_BYTES + b'"}'
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *_, **__: _Response(body))
+    stars = GitHubStars()
+
+    assert stars(Entry(repository="https://github.com/acme/repo")) is None
+    assert stars.failures == [f"response larger than {MAX_STARS_BYTES} bytes"]
+
+
+def test_a_rate_limited_request_is_unavailable_and_recorded(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def limited(request: urllib.request.Request, timeout: float) -> None:
+        raise urllib.error.HTTPError(request.full_url, 403, "rate limit exceeded", None, None)
+
+    monkeypatch.setattr(urllib.request, "urlopen", limited)
+    stars = GitHubStars()
+    stars(Entry(repository="https://github.com/acme/repo"))
+    stars(Entry(repository="https://github.com/acme/other"))
+
+    assert stars.failures == [
+        "HTTP 403 rate limit exceeded",
+        "HTTP 403 rate limit exceeded",
+    ]
+    assert stars.warning() == (
+        "Star counts unavailable for 2 of 2 packs "
+        "(GitHub API: HTTP 403 rate limit exceeded); set GITHUB_TOKEN or pass --no-stars."
+    )
+
+
+def test_no_warning_when_every_count_was_found(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *_, **__: _Response(b"{}"))
+    stars = GitHubStars()
+
+    assert stars(Entry(repository="https://github.com/acme/repo")) is None
+    assert stars.warning() is not None
+    assert GitHubStars().warning() is None
 
 
 _TYPES: dict[str, tuple[type, ...]] = {

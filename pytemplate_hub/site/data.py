@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import urllib.error
 import urllib.request
 from collections.abc import Callable
@@ -26,6 +27,7 @@ from pytemplate_hub.site.render import (
 from pytemplate_hub.verify import entry_files
 
 STARS_TIMEOUT_SECONDS = 15.0
+MAX_STARS_BYTES = 1024 * 1024  # a repository's API object is a few kilobytes
 StarSource = Callable[[Entry], int | None]
 INDEX_FORMAT = 1
 INDEX_FILE = "index.json"
@@ -160,18 +162,74 @@ INDEX_SCHEMA: dict[str, Any] = {
 }
 
 
+class GitHubStars:
+    """Look up star counts from GitHub, once per repository per build.
+
+    If ``GITHUB_TOKEN`` is set and non-empty, requests send it as a bearer token (read-only use).
+    The token is never printed or stored in a failure message. Every failure is recorded in
+    ``failures`` and makes the call return ``None``; the CLI reports them once after the build.
+    """
+
+    def __init__(self) -> None:
+        token = os.environ.get("GITHUB_TOKEN", "").strip()
+        self._headers = {"Accept": "application/vnd.github+json", "User-Agent": "pytemplate-hub"}
+        if token:
+            self._headers["Authorization"] = f"Bearer {token}"
+        self._cache: dict[tuple[str, str], int | None] = {}
+        self.failures: list[str] = []
+        self.packs = 0
+        self.unavailable = 0
+
+    def __call__(self, entry: Entry) -> int | None:
+        """Return the source repository's star count, or ``None`` if GitHub cannot say."""
+        self.packs += 1
+        key = (entry.owner, entry.repository_name)
+        if key not in self._cache:
+            self._cache[key] = self._fetch(*key)
+        stars = self._cache[key]
+        if stars is None:
+            self.unavailable += 1
+        return stars
+
+    def warning(self) -> str | None:
+        """Return the one-line warning for the build, or ``None`` when every count was found."""
+        if not self.failures:
+            return None
+        return (
+            f"Star counts unavailable for {self.unavailable} of {self.packs} packs "
+            f"(GitHub API: {self.failures[0]}); set GITHUB_TOKEN or pass --no-stars."
+        )
+
+    def _fetch(self, owner: str, repository: str) -> int | None:
+        request = urllib.request.Request(
+            f"https://api.github.com/repos/{owner}/{repository}", headers=self._headers
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=STARS_TIMEOUT_SECONDS) as response:
+                body = response.read(MAX_STARS_BYTES + 1)
+        except urllib.error.HTTPError as error:
+            self.failures.append(f"HTTP {error.code} {error.reason}")
+            return None
+        except (OSError, ValueError) as error:
+            self.failures.append(f"request failed: {type(error).__name__}")
+            return None
+        if len(body) > MAX_STARS_BYTES:
+            self.failures.append(f"response larger than {MAX_STARS_BYTES} bytes")
+            return None
+        try:
+            stars = json.loads(body).get("stargazers_count")
+        except (ValueError, AttributeError):
+            self.failures.append("unexpected response")
+            return None
+        if not isinstance(stars, int) or isinstance(stars, bool):
+            self.failures.append("unexpected response")
+            return None
+        return stars
+
+
 def github_stars(entry: Entry) -> int | None:
-    """Return the source repository's star count, or ``None`` if GitHub cannot say."""
-    request = urllib.request.Request(
-        f"https://api.github.com/repos/{entry.owner}/{entry.repository_name}",
-        headers={"Accept": "application/vnd.github+json", "User-Agent": "pytemplate-hub"},
-    )
-    try:
-        with urllib.request.urlopen(request, timeout=STARS_TIMEOUT_SECONDS) as response:
-            stars = json.load(response).get("stargazers_count")
-    except (OSError, ValueError, AttributeError):
-        return None
-    return stars if isinstance(stars, int) else None
+    """Return one repository's star count with a fresh :class:`GitHubStars` (no shared cache)."""
+    return GitHubStars()(entry)
 
 
 def no_stars(_: Entry) -> None:

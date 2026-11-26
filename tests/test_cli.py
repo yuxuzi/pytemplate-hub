@@ -1,6 +1,8 @@
 """Tests for the command-line interface."""
 
 import shutil
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 import pytest
@@ -131,6 +133,29 @@ def test_site_builds_without_network(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert "with 1 packs" in result.output
     assert "Sample pack" in (output / "index.html").read_text(encoding="utf-8")
+
+
+def test_site_prints_one_star_warning_and_never_the_token(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    index = tmp_path / "index"
+    assert _add(index) == 0
+    monkeypatch.setenv("GITHUB_TOKEN", "ghp_secret")
+
+    def limited(request: urllib.request.Request, timeout: float) -> None:
+        raise urllib.error.HTTPError(request.full_url, 403, "rate limit exceeded", None, None)
+
+    monkeypatch.setattr(urllib.request, "urlopen", limited)
+
+    result = runner.invoke(
+        cli.app, ["site", "--index", str(index), "--output", str(tmp_path / "out")]
+    )
+
+    warnings = [line for line in result.output.splitlines() if "Star counts unavailable" in line]
+    assert result.exit_code == 0
+    assert len(warnings) == 1
+    assert warnings[0].endswith("set GITHUB_TOKEN or pass --no-stars.")
+    assert "ghp_secret" not in result.output
 
 
 def test_site_fails_for_a_missing_index(tmp_path: Path) -> None:
