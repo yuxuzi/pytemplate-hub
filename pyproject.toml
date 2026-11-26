@@ -19,7 +19,7 @@ dependencies = [
     "jinja2>=3.1",
     "markdown-it-py>=3",
     "pydantic>=2.7",
-    "pytemplate-uv>=3.7,<4",
+    "pytemplate-uv>=3.7.1,<4",
     "rich>=13.7",
     "typer>=0.12",
 ]

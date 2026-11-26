@@ -113,6 +113,6 @@ Decisions and fixes made after this audit. The rows above are kept as they were 
 - **P1-8 (line endings).** Fixed: both checkouts now pass `core.autocrlf=false` and `core.eol=lf`, so
   `text=auto` cannot turn LF into CRLF on Windows: the hub's `GitFetcher` here, and pytemplate-uv in
   yuxuzi/pytemplate-uv#25 (tested on its Windows CI). The hub takes the digest from pytemplate-uv, so a
-  Windows user needs the pytemplate-uv release that contains #25.
+  Windows user needs pytemplate-uv 3.7.1, which contains #25 and which the hub now requires.
 - **Date rows (not in the audit).** `checked_on` and `built_on` now use the UTC date, so a listing and a
   site build do not depend on the machine's local day.
