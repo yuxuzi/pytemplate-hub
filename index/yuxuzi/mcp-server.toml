@@ -2,6 +2,8 @@ format = 1
 repository = "https://github.com/yuxuzi/mcp-server"
 name = "MCP servers"
 description = "Model Context Protocol servers in Python that expose your own functions as typed tools to AI clients, with tests that call them in process."
+categories = ["ai"]
+keywords = ["mcp", "agent", "tools", "llm", "claude", "model context protocol"]
 
 [[versions]]
 tag = "v1.0.0"
@@ -11,3 +13,13 @@ pack_version = "1.0.0"
 license = "MIT"
 checked_with = "pytemplate-uv==3.2.0"
 profiles = [{ id = "tools", lifecycle = "passed" }, { id = "tools-http", lifecycle = "passed" }]
+
+[[versions]]
+tag = "v1.1.0"
+commit = "e117361215975ef3f24569667bd5789e53ffdbf5"
+digest = "24c2e5b7d752a779b6416caa6b5fd9a945cb6b6c7eabf37f253a6e6ac6176d61"
+pack_version = "1.1.0"
+license = "MIT"
+checked_with = "pytemplate-uv==3.6.0"
+checked_on = 2026-11-25
+profiles = [{ id = "tools", lifecycle = "passed", name = "MCP server, stdio", description = "An MCP server over stdio with two example tools and tests that call them through an in-process client session.", kind = "service", supported_python = ["3.11", "3.12", "3.13", "3.14", "3.15"], dependencies = ["mcp"], security_posture = "Tools run with the server's own permissions. The example tools read only their input. Nothing is authenticated: the server trusts whichever MCP client launches it over stdio. The project needs no secrets, network, or services, and the checks do not review what your own tools do." }, { id = "tools-http", lifecycle = "passed", name = "MCP server, streamable HTTP", description = "The same MCP server served over streamable HTTP on localhost, with tests that run its HTTP app in process.", kind = "service", supported_python = ["3.11", "3.12", "3.13", "3.14", "3.15"], dependencies = ["mcp"], security_posture = "Tools run with the server's own permissions. The example tools read only their input. The HTTP server has no authentication and binds to 127.0.0.1 by default; set MCP_HOST to another address only behind your own authentication and network controls. Anyone who can reach the port can call the tools. The checks do not review what your own tools do." }]

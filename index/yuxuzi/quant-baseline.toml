@@ -2,6 +2,8 @@ format = 1
 repository = "https://github.com/yuxuzi/quant-baseline"
 name = "Quant-Agent-OS quant baseline templates"
 description = "A portable, bias-tested quant research project: study, backtest, and report in one."
+categories = ["quant"]
+keywords = ["research", "backtest", "signals", "lab", "baseline", "factor"]
 
 [[versions]]
 tag = "v2.0.0"
@@ -65,3 +67,13 @@ pack_version = "4.1.2"
 license = "MIT"
 checked_with = "pytemplate-uv==3.2.0"
 profiles = [{ id = "quant-lab", lifecycle = "passed" }]
+
+[[versions]]
+tag = "v4.2.0"
+commit = "5af7a545bc13cdf84fb5c0eb10f320e049ae93b6"
+digest = "808f22bb7708069b53d85bbf32cde1c81520971afed38b4c2592ecfd544b1748"
+pack_version = "4.2.0"
+license = "MIT"
+checked_with = "pytemplate-uv==3.6.0"
+checked_on = 2026-11-25
+profiles = [{ id = "quant-lab", lifecycle = "passed", name = "Quant lab", description = "One project for signal research: study (IC, rank IC, quantile spreads, decay), backtest (lagged trades, drift, rebalancing, costs, delistings), and report, sharing data, signals, and config.toml, with Quant Toolbox's metrics and bias tests.", kind = "cli", supported_python = ["3.11", "3.12", "3.13", "3.14", "3.15"], dependencies = ["numpy", "quant-toolbox"], security_posture = "Reads local price files (or one read-only database query) only; no orders, broker connectivity, or credentials in the project." }]

@@ -2,6 +2,8 @@ format = 1
 repository = "https://github.com/yuxuzi/data-pipeline"
 name = "Data pipelines"
 description = "Typed extract-transform-load pipelines in Python with tested steps, sample data, and a command to run them."
+categories = ["data"]
+keywords = ["etl", "pipeline", "duckdb", "polars", "dataframe", "batch"]
 
 [[versions]]
 tag = "v1.0.0"
@@ -11,3 +13,13 @@ pack_version = "1.0.0"
 license = "MIT"
 checked_with = "pytemplate-uv==3.2.0"
 profiles = [{ id = "etl", lifecycle = "passed" }, { id = "etl-polars", lifecycle = "passed" }]
+
+[[versions]]
+tag = "v1.1.0"
+commit = "38da87f050e93be583cecab6717dabf8a606a741"
+digest = "76d7d621e59ba8c7f1bb7475d57d3140e743ca26be9dda19fe1eda8703c9bd0c"
+pack_version = "1.1.0"
+license = "MIT"
+checked_with = "pytemplate-uv==3.6.0"
+checked_on = 2026-11-25
+profiles = [{ id = "etl", lifecycle = "passed", name = "DuckDB pipeline", description = "Extract, transform, validate, and load a CSV to Parquet with DuckDB, with tested steps, sample data, and a run command.", kind = "cli", supported_python = ["3.11", "3.12", "3.13", "3.14", "3.15"], dependencies = ["typer", "duckdb"], security_posture = "Reads the CSV named by --input and writes the Parquet file named by --output, on the local disk only. It needs no credentials, network access, or services. Input is validated before anything is loaded: columns and types must match, required columns must have no nulls, quantities and prices must not be negative, and an empty file is refused. The checks do not scan dependencies or code for security problems, and they do not sandbox the process." }, { id = "etl-polars", lifecycle = "passed", name = "Polars pipeline", description = "The same extract, transform, validate, and load shape as the etl profile, with Polars expressions instead of DuckDB.", kind = "cli", supported_python = ["3.11", "3.12", "3.13", "3.14", "3.15"], dependencies = ["typer", "polars"], security_posture = "Reads the CSV named by --input and writes the Parquet file named by --output, on the local disk only. It needs no credentials, network access, or services. Input is validated before anything is loaded: columns and types must match, required columns must have no nulls, quantities and prices must not be negative, and an empty file is refused. The checks do not scan dependencies or code for security problems, and they do not sandbox the process." }]

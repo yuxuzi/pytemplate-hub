@@ -2,6 +2,8 @@ format = 1
 repository = "https://github.com/yuxuzi/background-worker"
 name = "Background workers"
 description = "Python job workers with typed jobs, retries with backoff, graceful shutdown, and tests that need no broker."
+categories = ["worker"]
+keywords = ["worker", "jobs", "queue", "retry", "redis", "background"]
 
 [[versions]]
 tag = "v1.0.0"
@@ -11,3 +13,13 @@ pack_version = "1.0.0"
 license = "MIT"
 checked_with = "pytemplate-uv==3.2.0"
 profiles = [{ id = "worker", lifecycle = "passed" }, { id = "worker-redis", lifecycle = "passed" }]
+
+[[versions]]
+tag = "v1.1.0"
+commit = "13e01d66dda6f9c53030430c37d93e5b4ba868f3"
+digest = "fdc55d62db9100042b9aa50ec7ea53b67484815bd1867da3d438060c6b2b9dcc"
+pack_version = "1.1.0"
+license = "MIT"
+checked_with = "pytemplate-uv==3.6.0"
+checked_on = 2026-11-25
+profiles = [{ id = "worker", lifecycle = "passed", name = "Background worker", description = "An asyncio job worker with an in-memory queue: typed jobs, a concurrency limit, per-job timeouts, retries with backoff, a dead-letter list, and graceful shutdown on SIGINT and SIGTERM.", kind = "service", supported_python = ["3.11", "3.12", "3.13", "3.14", "3.15"], dependencies = [], security_posture = "No secrets, network access, or services are needed: the demo and the tests use an in-memory queue, and the runtime uses only the standard library. Job payloads are untrusted input; the example handler validates its payload, and the worker does not sandbox handlers. Logs never include payloads, but dead letters keep exception messages, so handlers must not put secrets in them. The checks do not scan dependencies or code for security problems." }, { id = "worker-redis", lifecycle = "passed", name = "Background worker with Redis", description = "The background worker with a Redis-backed queue, selected by REDIS_URL: jobs survive a restart and several worker processes can share one queue. Tests use an in-memory queue and fakeredis, not a real Redis server.", kind = "service", supported_python = ["3.11", "3.12", "3.13", "3.14", "3.15"], dependencies = ["redis"], security_posture = "REDIS_URL may hold a password, which the app reads only from the environment and never logs, prints, or puts in an error message. No secret is stored in the project. Job payloads are untrusted input; the example handler validates its payload, and the worker does not sandbox handlers. Dead letters keep exception messages, so handlers must not put secrets in them. The Redis connection is not checked for TLS: use a rediss:// URL when the network is untrusted. The tests do not contact a real Redis server, and the checks do not scan dependencies or code for security problems." }]

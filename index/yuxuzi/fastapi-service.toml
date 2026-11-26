@@ -2,6 +2,8 @@ format = 1
 repository = "https://github.com/yuxuzi/fastapi-service"
 name = "FastAPI services"
 description = "Layered FastAPI services with health checks, settings, structured logs, and tests, with or without a SQL database."
+categories = ["web"]
+keywords = ["fastapi", "rest", "api", "http", "service", "sqlalchemy", "database", "uvicorn"]
 
 [[versions]]
 tag = "v1.0.0"
@@ -11,3 +13,13 @@ pack_version = "1.0.0"
 license = "MIT"
 checked_with = "pytemplate-uv==3.2.0"
 profiles = [{ id = "service", lifecycle = "passed" }, { id = "service-sql", lifecycle = "passed" }]
+
+[[versions]]
+tag = "v1.1.0"
+commit = "b3d4127b66c767bd5238130b570efb823b50ea8a"
+digest = "587d4e7235951e2d4f683288fb73f1a31675676cc539a1abb5ba0b2ea8ed0407"
+pack_version = "1.1.0"
+license = "MIT"
+checked_with = "pytemplate-uv==3.6.0"
+checked_on = 2026-11-25
+profiles = [{ id = "service", lifecycle = "passed", name = "FastAPI service", description = "A layered FastAPI service with health and readiness, settings, JSON logs, an in-memory example resource, and tests.", kind = "service", supported_python = ["3.11", "3.12", "3.13", "3.14", "3.15"], dependencies = [], security_posture = "No secrets are needed to run it, and it contacts no service. No authentication is included: add it before exposing the service beyond a trusted network. The generated checks do not test deployment, the Dockerfile, or authentication; production settings refuse wildcard hosts and debug mode, and nothing else is checked." }, { id = "service-sql", lifecycle = "passed", name = "FastAPI service with SQL", description = "The service profile with the example resource stored through SQLAlchemy 2: SQLite by default, tables created at startup, and tests on a temporary SQLite file.", kind = "service", supported_python = ["3.11", "3.12", "3.13", "3.14", "3.15"], dependencies = [], security_posture = "No secrets are needed by default: the database is a SQLite file created in the working directory. A PostgreSQL DATABASE_URL carries a password, so supply it through the environment. No authentication is included: add it before exposing the service beyond a trusted network. The generated checks use SQLite only and do not test PostgreSQL, deployment, the Dockerfile, or authentication; production settings refuse wildcard hosts and debug mode but accept the default SQLite URL." }]
